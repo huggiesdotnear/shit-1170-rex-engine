@@ -74,17 +74,17 @@ function SHIT_1170_COMPONENT_APP_PAGE_SKILL_INSTALLS_FUN() {
         "https://github.com/huggiesdotnear/shit-1170-rex-engine-agent",
       repository_label: "AGENT",
       install_command:
-        "npx awesome-agents add huggiesdotnear/shit-1170-rex-engine-agent --agent rex",
+        "bunx awesome-agents add huggiesdotnear/shit-1170-rex-engine-agent --agent rex",
       list_command:
-        "npx awesome-agents add huggiesdotnear/shit-1170-rex-engine-agent --list",
+        "bunx awesome-agents add huggiesdotnear/shit-1170-rex-engine-agent --list",
       copy_message: [
         "Install REX, the shit-1170 rex engine agent:",
         "",
-        "npx awesome-agents add huggiesdotnear/shit-1170-rex-engine-agent --agent rex",
+        "bunx awesome-agents add huggiesdotnear/shit-1170-rex-engine-agent --agent rex",
         "",
         "To list the agent profiles in the repo:",
         "",
-        "npx awesome-agents add huggiesdotnear/shit-1170-rex-engine-agent --list",
+        "bunx awesome-agents add huggiesdotnear/shit-1170-rex-engine-agent --list",
       ].join("\n"),
     },
   ];
