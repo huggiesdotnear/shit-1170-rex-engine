@@ -1,9 +1,9 @@
 // ========================================
-// the skill page's skill install cards: one for the general NEAR contract
-// skills and one for the skills that use the shit-1170 rex engine.
+// the skill page's install cards: the general NEAR contract skills, the
+// skills that use the shit-1170 rex engine, and the REX agent itself.
 //
 // the cards are static: they show the commands for installing and listing
-// each skill package. they do not fetch.
+// each skill package, and for installing the agent. they do not fetch.
 import { render } from "preact";
 import { Copy, Check, ExternalLink } from "lucide-preact";
 import { useState as use_state } from "preact/hooks";
@@ -65,13 +65,36 @@ function SHIT_1170_COMPONENT_APP_PAGE_SKILL_INSTALLS_FUN() {
         "bunx skills add huggiesdotnear/shit-1170-rex-engine-skills --list",
       ].join("\n"),
     },
+    {
+      id: "rex-agent",
+      title: "THE REX AGENT",
+      description:
+        "AN AGENT THAT READS THE CHAIN AND THE ENGINE, AND QUEUES TRANSACTIONS AND SWAPS FOR YOU TO SIGN.",
+      repository_url:
+        "https://github.com/huggiesdotnear/shit-1170-rex-engine-agent",
+      repository_label: "AGENT",
+      install_command:
+        "npx awesome-agents add huggiesdotnear/shit-1170-rex-engine-agent --agent rex",
+      list_command:
+        "npx awesome-agents add huggiesdotnear/shit-1170-rex-engine-agent --list",
+      copy_message: [
+        "Install REX, the shit-1170 rex engine agent:",
+        "",
+        "npx awesome-agents add huggiesdotnear/shit-1170-rex-engine-agent --agent rex",
+        "",
+        "To list the agent profiles in the repo:",
+        "",
+        "npx awesome-agents add huggiesdotnear/shit-1170-rex-engine-agent --list",
+      ].join("\n"),
+    },
   ];
 
   return (
     <section>
-      <h2>INSTALL SKILLS</h2>
+      <h2>INSTALL SKILLS AND THE AGENT</h2>
       <p>
-        ADD THESE SKILLS TO YOUR AGENT TO INTERACT WITH NEAR SMART CONTRACTS.
+        ADD THESE SKILLS TO YOUR AGENT TO INTERACT WITH NEAR SMART CONTRACTS,
+        OR INSTALL REX, THE AGENT THAT DOES IT FOR YOU.
       </p>
       <div class="skill-install-cards">
         {skill_cards.map((skill) => (
@@ -84,7 +107,7 @@ function SHIT_1170_COMPONENT_APP_PAGE_SKILL_INSTALLS_FUN() {
               target="_blank"
               rel="noreferrer"
             >
-              VIEW SKILL REPOSITORY
+              VIEW {skill.repository_label ?? "SKILL"} REPOSITORY
               <ExternalLink size={14} />
             </a>
             <div class="skill-install-code-block">
