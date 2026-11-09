@@ -87,12 +87,16 @@
   font-weight: 700;
 }
 /*==================================*/
-/* the body: whatever the chosen mode shows. */
+/* the body: whatever the chosen mode shows.
+
+   --- WHY --- THE BODY DOES NOT SCROLL: the code block inside it scrolls
+   on its own (see tx/code_block.css), and a second scrollbar on the
+   wrapper would mean two bars for one piece of code — and the inner
+   one would be the one the reader has to aim at. the wrapper only
+   holds the block and stays out of the way. */
 #SHIT_1170_COMPONENT_TX_ACTIONS .args-viewer .args-body,
 #SHIT_1170_COMPONENT_TX_RECEIPTS .args-viewer .args-body {
   min-width: 0;
-  max-height: 320px;
-  overflow: auto;
 }
 /* the text modes (raw, hex, base64) keep their own box. */
 #SHIT_1170_COMPONENT_TX_ACTIONS .args-viewer .args-text,
@@ -111,9 +115,15 @@
    offset. so the hex keeps its own line breaks and the box scrolls
    sideways.
 
-   --- WHY --- BOTH THE `pre` AND THE `code` ARE TARGETED: the plain
-   code block puts the bytes in a `<pre><code>`, and the wrapping is
-   on the `code` inside it. */
+   --- WHY --- BOTH THE `pre` AND THE `code` KEEP THEIR OWN LINE BREAKS:
+   the plain code block puts the bytes in a `<pre><code>`, and the
+   wrapping is on the `code` inside it. both are told not to wrap.
+
+   --- WHY --- ONLY THE `pre` SCROLLS SIDEWAYS: the `pre` IS the code
+   block, and it already scrolls (see tx/code_block.css). giving the
+   `code` inside it a second scroller would mean two sideways bars for
+   one line of bytes, and the reader would have to guess which one to
+   use. the `code` only holds the text. */
 #SHIT_1170_COMPONENT_TX_ACTIONS .args-viewer .args-text.is-hex pre,
 #SHIT_1170_COMPONENT_TX_RECEIPTS .args-viewer .args-text.is-hex pre,
 #SHIT_1170_COMPONENT_TX_ACTIONS .args-viewer .args-text.is-hex code,
@@ -121,6 +131,9 @@
   white-space: pre;
   overflow-wrap: normal;
   word-break: normal;
+}
+#SHIT_1170_COMPONENT_TX_ACTIONS .args-viewer .args-text.is-hex pre,
+#SHIT_1170_COMPONENT_TX_RECEIPTS .args-viewer .args-text.is-hex pre {
   overflow-x: auto;
 }
 /*==================================*/

@@ -131,6 +131,12 @@
   font-family: monospace;
   font-size: 11px;
   line-height: 1.5;
-  overflow-x: auto;
+  /* --- WHY --- THE BOX IS CAPPED AND SCROLLS: this hex is the raw
+     payload of the call, and a payload can be any size. the box stops
+     at the same height as the json code block (see tx/code_block.css)
+     and the reader scrolls inside it, so a big payload does not push
+     the rest of the queue off the page. */
+  max-height: 320px;
+  overflow: auto;
 }
 /*==================================*/

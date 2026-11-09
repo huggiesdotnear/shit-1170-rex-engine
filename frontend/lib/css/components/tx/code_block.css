@@ -16,7 +16,17 @@
   width: 100%;
   box-sizing: border-box;
   border-radius: 8px;
-  overflow: hidden;
+  /* --- WHY --- THE BOX SCROLLS INSTEAD OF GROWING: a block of code can
+     be any size — a big json argument, a wall of hex — and a box that
+     grows with it pushes everything below it off the page. the block
+     stops at this height and the reader scrolls inside it.
+
+     --- WHY --- THE OVERFLOW IS `auto` AND NOT `hidden`: `hidden` also
+     clipped the box to its rounded corners, but it cannot scroll. `auto`
+     does both — the corners are still clipped and the code inside can
+     be reached. */
+  max-height: 320px;
+  overflow: auto;
   background: #282c34;
   text-align: left;
 }
