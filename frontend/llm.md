@@ -219,6 +219,7 @@ set `SHIT_1170_REX_HOME` to use another directory.
 - `/app/swap` — the swap queue
 - `/app/tx` — one transaction
 - `/app/skill` — the api key card and the skill install cards
+- `/app/keys` — the access keys of the signed-in account
 - `/app/account` — an account
 - `/app/contract/*` — a contract's page
 

@@ -1,0 +1,135 @@
+/*==================================*/
+/* SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD
+   the keys page's add form: the contract, the methods, the button, and
+   the private key that comes back.
+
+   the private key gets its own box because it is the one thing on the
+   page the reader MUST take away — it is darker, and it is the only
+   piece of monospace text that is not a public key. */
+/*==================================*/
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD .keys-add {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+/*==================================*/
+/* the group heading. */
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD .keys-group {
+  margin: 10px 0 0;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  text-align: left;
+}
+/*==================================*/
+/* the pale notes: what a limited key is, and the warning about the
+   private key. */
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD .keys-note {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11px;
+  line-height: 1.5;
+  letter-spacing: 0.04em;
+  opacity: 0.8;
+  text-align: left;
+}
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD .keys-note.is-error {
+  color: #ffe8e6;
+  opacity: 1;
+}
+/*==================================*/
+/* one input: its label above, the box below. */
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD .keys-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+  text-align: left;
+}
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD .keys-field > span {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  opacity: 0.85;
+}
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD .keys-field > input {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 9px 12px;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 12px;
+  color: var(--color-fontend);
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 10px;
+}
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD .keys-field > input:focus {
+  outline: 2px solid var(--color-middle);
+  outline-offset: 1px;
+}
+/*==================================*/
+/* the box the new key comes back in. */
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD .keys-made {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-sizing: border-box;
+  padding: 12px;
+  border: 2px solid var(--color-middle);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.28);
+  text-align: left;
+}
+/*==================================*/
+/* the labels over the two keys. */
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD .keys-detail {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 10px;
+  line-height: 1.45;
+  letter-spacing: 0.06em;
+  opacity: 0.8;
+  overflow-wrap: anywhere;
+}
+/*==================================*/
+/* the public key. */
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD .keys-public-key {
+  display: block;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 11px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+/*==================================*/
+/* the PRIVATE key. it is highlighted because it is the one thing the
+   reader has to take with them. */
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD .keys-secret-key {
+  display: block;
+  padding: 8px 10px;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 11px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  text-align: left;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 8px;
+}
+/*==================================*/
+/* the copy and the done buttons. */
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD .keys-made-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD .keys-made-actions button {
+  flex: 1 1 100%;
+  width: 100%;
+  max-width: 100%;
+}
+/*==================================*/

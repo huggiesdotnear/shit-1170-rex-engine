@@ -1,0 +1,147 @@
+/*==================================*/
+/* SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST
+   the keys page's key list: the full-access keys on top, then the
+   limited ones with their pick boxes.
+
+   the two kinds look different on purpose. the full-access key is a
+   plain card because there is nothing to do with it. the limited keys
+   are pickable rows — the whole row is the label, so the reader picks
+   by tapping the key, not by hunting for a small box. */
+/*==================================*/
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST .keys-list {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+/*==================================*/
+/* the group heading — FULL ACCESS, then LIMITED. */
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST .keys-group {
+  margin: 10px 0 0;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  text-align: left;
+}
+/*==================================*/
+/* the pale notes: what the group is, and why the full-access keys
+   cannot be removed. */
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST .keys-note {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11px;
+  line-height: 1.5;
+  letter-spacing: 0.04em;
+  opacity: 0.8;
+  text-align: left;
+}
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST .keys-note.is-error {
+  color: #ffe8e6;
+  opacity: 1;
+}
+/*==================================*/
+/* one key. the full-access card and the limited row share the box. */
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST .keys-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.12);
+  text-align: left;
+}
+/*==================================*/
+/* the limited row is a label, so it sits on one line with its box. */
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST .keys-row.is-limited {
+  cursor: pointer;
+}
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST .keys-row.is-limited.is-picked {
+  border-color: var(--color-middle);
+  background: rgba(0, 0, 0, 0.28);
+}
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST
+  .keys-row.is-limited
+  input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  flex: 0 0 auto;
+  accent-color: var(--color-middle);
+  cursor: pointer;
+}
+/*==================================*/
+/* the body of the limited row, next to the pick box. */
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST .keys-row-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+/*==================================*/
+/* the head of a row: the kind on the left, the nonce on the right. */
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST .keys-row-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST .keys-kind {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  overflow-wrap: anywhere;
+}
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST .keys-nonce {
+  flex: 0 0 auto;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  opacity: 0.7;
+}
+/*==================================*/
+/* the public key, broken anywhere so it never widens the column. */
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST .keys-public-key {
+  display: block;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 11px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+/*==================================*/
+/* the methods and the allowance lines. */
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST .keys-detail {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 10px;
+  line-height: 1.45;
+  letter-spacing: 0.04em;
+  opacity: 0.8;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+/*==================================*/
+/* the remove row: the remove button and the unpick button. */
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST .keys-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  width: 100%;
+  margin-top: 4px;
+}
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST .keys-actions button {
+  flex: 1 1 100%;
+  width: 100%;
+  max-width: 100%;
+}
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST .keys-actions .keys-clear {
+  flex: 1 1 100%;
+  width: 100%;
+  max-width: 100%;
+}
+/*==================================*/

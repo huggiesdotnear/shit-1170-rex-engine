@@ -15,7 +15,12 @@
 // ========================================
 import { render } from "preact";
 import { SHIT_1170_MOUNT_ID } from "../../ts/shared/mount_ids";
-import { ArrowDownUp, ArrowLeftRight, GraduationCap } from "lucide-preact";
+import {
+  ArrowDownUp,
+  ArrowLeftRight,
+  GraduationCap,
+  KeyRound,
+} from "lucide-preact";
 import type { ComponentType } from "preact";
 // ========================================
 // ========================================
@@ -29,6 +34,7 @@ const SHIT_1170_PAGE_LINK_CARDS: ReadonlyArray<SHIT_1170_PAGE_LINK_CARD> = [
   { href: "swap.html", label: "SWAP", Icon: ArrowLeftRight },
   { href: "unit-conversion.html", label: "UNIT CONVERSION", Icon: ArrowDownUp },
   { href: "skill.html", label: "SKILL", Icon: GraduationCap },
+  { href: "keys.html", label: "ACCESS KEYS", Icon: KeyRound },
 ];
 // ========================================
 // ========================================

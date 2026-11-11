@@ -21,4 +21,14 @@ node_modules
 # says why. that has happened twice. a test that catches the mismatch
 # is not scratch — it is the thing that keeps the two sides in step.
 !frontend/lib/ts/shared/queue_args_wallet_action.test.ts
+
+# --- WHY THIS ONE IS TRACKED ---
+# this test pins the ORDER of the keys page's list and the shape of each
+# row. two rules hang on it: the FULL ACCESS key comes first, and only a
+# LIMITED key is pickable. the full access key IS the account — it can
+# do anything the account can do — so removing it locks the reader out
+# of their own account, and it is very often the key the wallet itself
+# signs with. a test that catches the list putting it in the wrong
+# place, or making it pickable, is not scratch.
+!frontend/lib/ts/keys/app_page_keys_types.test.ts
 /.openchamber
