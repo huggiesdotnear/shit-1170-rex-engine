@@ -56,6 +56,7 @@ describe("the add key action", () => {
       PUBLIC_KEY,
       "contract.near",
       ["method_one"],
+      null,
     );
     const action = transaction.actions[0] as {
       type: string;
@@ -76,12 +77,51 @@ describe("the add key action", () => {
     expect(action.params.accessKey.permission.functionCall).toBe(undefined);
   });
 
+  test("an allowance goes out as the RAW yoctoNEAR string", () => {
+    const transaction = shit_1170_wallet_add_key_fun(
+      ACCOUNT,
+      PUBLIC_KEY,
+      "contract.near",
+      ["method_one"],
+      "1500000000000000000000000",
+    );
+    const action = transaction.actions[0] as {
+      params: { accessKey: { permission: { allowance?: string } } };
+    };
+    // --- WHY THE RAW STRING: the allowance is a LIMIT on money and it
+    // is computed exactly, so the figure the reader chose is the figure
+    // the wallet shows and the chain records. a rounded one would be a
+    // different limit.
+    expect(action.params.accessKey.permission.allowance).toBe(
+      "1500000000000000000000000",
+    );
+  });
+
+  test("NO allowance leaves the field OUT ENTIRELY", () => {
+    const transaction = shit_1170_wallet_add_key_fun(
+      ACCOUNT,
+      PUBLIC_KEY,
+      "contract.near",
+      ["method_one"],
+      null,
+    );
+    const action = transaction.actions[0] as {
+      params: { accessKey: { permission: Record<string, unknown> } };
+    };
+    // --- WHY --- "no allowance" is the ABSENCE of the field. an empty
+    // string would be a limit of zero, and a key with a limit of zero
+    // can still be called while a key with no allowance cannot attach
+    // anything at all.
+    expect("allowance" in action.params.accessKey.permission).toBe(false);
+  });
+
   test("an empty method list goes out as an empty list, meaning ANY method", () => {
     const transaction = shit_1170_wallet_add_key_fun(
       ACCOUNT,
       PUBLIC_KEY,
       "contract.near",
       [],
+      null,
     );
     const action = transaction.actions[0] as {
       params: { accessKey: { permission: { methodNames: string[] } } };
@@ -95,6 +135,7 @@ describe("the add key action", () => {
       PUBLIC_KEY,
       "contract.near",
       [],
+      null,
     );
     const action = transaction.actions[0] as {
       params: { accessKey: { nonce: number } };

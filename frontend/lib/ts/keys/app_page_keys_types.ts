@@ -50,8 +50,7 @@ export interface SHIT_1170_APP_PAGE_KEYS_ROW {
   method_names: string[];
   // the deposit the key may spend, in yoctoNEAR, for a limited key.
   // null when the key may spend nothing.
-  allowance: string | null;
-  // the nonce of the key, so the reader can see the key has been used.
+  allowance: string | null; // the nonce of the key, so the reader can see the key has been used.
   nonce: number;
   // the private key, when THIS BROWSER holds it.
   //
@@ -197,6 +196,7 @@ function merge_vault_fun(
     secret_key: string | null;
     receiver_id: string;
     method_names: string[];
+    allowance_yocto: string | null;
   }>,
 ): SHIT_1170_APP_PAGE_KEYS_ROW[] {
   const by_public_key = new Map<
@@ -205,6 +205,7 @@ function merge_vault_fun(
       secret_key: string | null;
       receiver_id: string;
       method_names: string[];
+      allowance_yocto: string | null;
     }
   >();
   for (const row of vault_rows) {
@@ -212,6 +213,7 @@ function merge_vault_fun(
       secret_key: row.secret_key,
       receiver_id: row.receiver_id,
       method_names: row.method_names,
+      allowance_yocto: row.allowance_yocto,
     });
   }
 
@@ -221,12 +223,13 @@ function merge_vault_fun(
     return {
       ...row,
       secret_key: stored.secret_key,
-      // the chain is the truth about the contract and the methods, so
-      // they are only filled in from the record when the chain has
-      // nothing to say.
+      // the chain is the truth about the contract, the methods and the
+      // allowance, so they are only filled in from the record when the
+      // chain has nothing to say.
       receiver_id: row.receiver_id ?? stored.receiver_id,
       method_names:
         row.method_names.length > 0 ? row.method_names : stored.method_names,
+      allowance: row.allowance ?? stored.allowance_yocto,
     };
   });
 
@@ -239,7 +242,7 @@ function merge_vault_fun(
       full_access: false,
       receiver_id: row.receiver_id,
       method_names: row.method_names,
-      allowance: null,
+      allowance: row.allowance_yocto,
       nonce: 0,
       secret_key: row.secret_key,
       removed: true,

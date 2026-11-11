@@ -1,13 +1,14 @@
 // ========================================
-// the keys page's url parameters: `?account=` and `?methods=`.
+// the keys page's url parameters: `?account=`, `?methods=` and
+// `?allowance=`.
 //
 // a link to the add form should say what the key is for:
-// `keys.html?account=dex.intear.near&methods=swap`
+// `keys.html?account=dex.intear.near&methods=swap&allowance=1.5`
 //
 // --- WHY THE PARAMETERS ARE NAMED AFTER WHAT THEY HOLD: `?account=`
-// is the account the key may call, and `?methods=` is the list of
-// methods it may call. a link that says what the key is FOR is worth
-// keeping whole.
+// is the account the key may call, `?methods=` is the list of methods
+// it may call, and `?allowance=` is how much it may spend. a link that
+// says what the key is FOR is worth keeping whole.
 //
 // --- WHY IT DOES NOT REUSE THE SHARED `?id=` READER: that reader is
 // for a page that shows ONE thing — a token, an account, a dao — and
@@ -16,13 +17,15 @@
 // `?id=` on this page would be ambiguous: is that the account the key
 // calls, or the account whose keys are on screen?
 //
-// --- WHY THE METHODS ARE A COMMA SEPARATED STRING: it is the same
-// list the box holds and the same list the chain wants, so the url
-// carries the chain's own shape and nothing has to be translated.
+// --- WHY THE ALLOWANCE IS IN NEAR AND NOT YOCTONEAR: it is the same
+// unit the box holds, and the same unit the reader types. a link that
+// carried a 25-digit yoctoNEAR number would be a link nobody could
+// read.
 //
 // --- WHY IT IMPORTS NOTHING: the rule is the whole of it.
 const URL_ACCOUNT_PARAM = "account";
 const URL_METHODS_PARAM = "methods";
+const URL_ALLOWANCE_PARAM = "allowance";
 // ========================================
 // ========================================
 // --- HELPERS ----------------------------
@@ -64,11 +67,27 @@ function read_url_methods_fun(): string | null {
   return normalize_param_fun(params.get(URL_METHODS_PARAM));
 }
 // ========================================
+// the `?allowance=` off the current url, or null when there is none.
+//
+// --- WHY THE RAW STRING AND NOT A FIGURE: the allowance is parsed by
+// the same rule the box is parsed by, so a link and a typed value go
+// down the same road. the reader of the link sees the same thing they
+// would have typed.
+function read_url_allowance_fun(): string | null {
+  if (typeof window === "undefined" || typeof window.location === "undefined") {
+    return null;
+  }
+  const params = new URLSearchParams(window.location.search);
+  return normalize_param_fun(params.get(URL_ALLOWANCE_PARAM));
+}
+// ========================================
+// ========================================
 // ========================================
 // --- PUBLIC ---------------------------
 export const SHIT_1170_APP_PAGE_KEYS_URL = {
   read_account: read_url_account_fun,
   read_methods: read_url_methods_fun,
+  read_allowance: read_url_allowance_fun,
   normalize: normalize_param_fun,
 };
 // ========================================

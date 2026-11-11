@@ -52,4 +52,13 @@ node_modules
 # test also pins that the url can prefill the form, so a link to the
 # page can say what the key is for.
 !frontend/lib/ts/keys/app_page_keys_account_id.test.ts
+
+# --- WHY THIS ONE IS TRACKED ---
+# this test pins the ALLOWANCE of a limited key: what the reader types
+# in NEAR, what the chain stores in yoctoNEAR, and what the reader sees
+# back. the one rule that matters most is in there — the human figure
+# must NEVER round a real limit down to "0", because "the key can spend
+# nothing" is a different statement from "the key can spend one
+# yoctoNEAR".
+!frontend/lib/ts/keys/app_page_keys_allowance.test.ts
 /.openchamber

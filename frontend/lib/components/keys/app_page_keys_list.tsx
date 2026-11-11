@@ -31,6 +31,7 @@ import { SHIT_1170_APP_PAGE_KEYS_STORE } from "../../ts/keys/app_page_keys_store
 import { use_page_store_fun } from "../../ts/shared/use_page_store";
 import { SHIT_1170_AUTH } from "../../ts/shared/auth_status";
 import { SHIT_1170_APP_PAGE_KEYS_REMOVE } from "../../ts/keys/app_page_keys_remove";
+import { SHIT_1170_APP_PAGE_KEYS_ALLOWANCE } from "../../ts/keys/app_page_keys_allowance";
 import { SHIT_1170_TOAST_STORE } from "../../ts/shared/toast_store";
 // ========================================
 // ========================================
@@ -47,14 +48,23 @@ function methods_text_fun(method_names: ReadonlyArray<string>): string {
 }
 // the allowance of a limited key, in one line.
 //
-// --- WHY THE ALLOWANCE IS IN YOCTONEAR AND NOT IN NEAR: the chain
-// stores the allowance in yoctoNEAR and a rounding to NEAR would show
-// "0" for every allowance that is not worth a whole NEAR — which is
-// almost all of them. so the raw number is shown.
+// --- WHY A HUMAN FIGURE AND NOT THE RAW ONE: the chain stores the
+// allowance in yoctoNEAR, and a yoctoNEAR is a 10^-24 NEAR. the raw
+// figure for one NEAR is 25 digits, which is not a number a reader can
+// read. so the row shows the NEAR and carries the raw figure in the
+// title, so a reader who needs the exact number the chain recorded can
+// hover for it.
+//
+// --- WHY "NO ALLOWANCE" AND NOT "0 NEAR": they are different things.
+// a key with NO allowance cannot attach a deposit at all. a key with an
+// allowance of ZERO can attach a deposit of zero, and can still be
+// called. the difference matters to a reader deciding whether a key is
+// safe to hand to somebody.
 function allowance_text_fun(allowance: string | null): string {
   if (allowance === null) return "NO ALLOWANCE";
-  if (allowance === "0") return "NO ALLOWANCE";
-  return `${allowance} YOCTONEAR`;
+  const formatted = SHIT_1170_APP_PAGE_KEYS_ALLOWANCE.format(allowance);
+  if (formatted.human === null) return "NO ALLOWANCE";
+  return formatted.human;
 }
 // ========================================
 // ========================================
@@ -215,7 +225,14 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST_FUN() {
                   <p class="keys-detail">
                     METHODS: {methods_text_fun(row.method_names)}
                   </p>
-                  <p class="keys-detail">
+                  <p
+                    class="keys-detail is-allowance"
+                    title={
+                      row.allowance === null
+                        ? "the key can attach no deposit at all"
+                        : `${row.allowance} yoctoNEAR`
+                    }
+                  >
                     ALLOWANCE: {allowance_text_fun(row.allowance)}
                   </p>
 

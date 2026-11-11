@@ -104,7 +104,7 @@ everything for that page. no component fetches anything.
 - [`frontend.app.unit-conversion.md`](./frontend.app.unit-conversion.md) - `frontend/app/unit-conversion.html` - ?ca= ?human= ?unit= - UNIT CONVERSION
 - [`frontend.app.swap.md`](./frontend.app.swap.md) - `frontend/app/swap.html` - ?in= - ?out= - ?amount_in= - ?amount_out= - ?swap= - SWAP
 - [`frontend.app.game.md`](./frontend.app.game.md) - `frontend/app/game.html`
-- [`frontend.app.keys.md`](./frontend.app.keys.md) - `frontend/app/keys.html` - ?account= - ?methods= - ACCESS KEYS
+- [`frontend.app.keys.md`](./frontend.app.keys.md) - `frontend/app/keys.html` - ?account= - ?methods= - ?allowance= - ACCESS KEYS
 - [`frontend.app.account.md`](./frontend.app.account.md) - `frontend/app/account.html` - ?id= - ?tab=
 - [`frontend.app.tx.md`](./frontend.app.tx.md) - `frontend/app/tx.html` - ?tx= - TRANSACTION
 - [`frontend.app.token.index.md`](./frontend.app.token.index.md) - `frontend/app/token/index.html` - ?id= - TOKEN

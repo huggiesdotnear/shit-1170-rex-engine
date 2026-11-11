@@ -78,6 +78,8 @@ export interface SHIT_1170_KEY_VAULT_ROW {
   receiver_id: string;
   // the methods the key may call. empty means ANY method.
   method_names: string[];
+  // the allowance, in yoctoNEAR. null when the key has none.
+  allowance_yocto: string | null;
   // when the key was made, in milliseconds since the epoch.
   created_at: number;
 }

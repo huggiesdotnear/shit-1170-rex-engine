@@ -56,15 +56,38 @@ export interface SHIT_1170_WALLET_KEY_PERMISSION {
 // the transaction that adds one limited key.
 //
 // --- WHY THE METHOD NAMES GO OUT AS A LIST AND NOT NULL: an empty
-// list means "every method on this contract" on the chain, and the
+// list means "every method on this account" on the chain, and the
 // connector's shape says the same with an empty list. the wallet draws
 // the same thing either way.
+//
+// --- WHY THE ALLOWANCE GOES OUT AS THE RAW STRING: it is a limit on
+// money and the chain stores it as yoctoNEAR. the connector's shape
+// carries it as a string, so the exact figure the reader chose is what
+// reaches the wallet — not a rounded one.
+//
+// --- WHY A NULL ALLOWANCE IS LEFT OUT ENTIRELY: the connector's
+// shape has the allowance as optional, and "no allowance" is the
+// absence of the field. sending an empty string would be a different
+// thing — a limit of zero — and a key with a limit of zero can still
+// be called, while a key with no allowance can attach nothing.
 export function shit_1170_wallet_add_key_fun(
   account_id: string,
   public_key: string,
   receiver_id: string,
   method_names: string[],
+  allowance_yocto: string | null,
 ): SHIT_1170_WALLET_TRANSACTION {
+  const permission: {
+    receiverId: string;
+    methodNames: string[];
+    allowance?: string;
+  } = {
+    receiverId: receiver_id,
+    methodNames: method_names,
+  };
+  if (allowance_yocto !== null) {
+    permission.allowance = allowance_yocto;
+  }
   return {
     receiverId: account_id,
     actions: [
@@ -74,10 +97,7 @@ export function shit_1170_wallet_add_key_fun(
           publicKey: public_key,
           accessKey: {
             nonce: 0,
-            permission: {
-              receiverId: receiver_id,
-              methodNames: method_names,
-            },
+            permission,
           },
         },
       },

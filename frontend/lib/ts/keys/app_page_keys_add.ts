@@ -47,6 +47,8 @@ export interface SHIT_1170_APP_PAGE_KEYS_ADD_RESULT {
   receiver_id: string;
   // the methods the key may call.
   method_names: string[];
+  // the allowance, in yoctoNEAR. null when the key has none.
+  allowance_yocto: string | null;
   // the message for the reader, when it failed.
   error: string | null;
   // true when the reader declined the wallet popup.
@@ -113,13 +115,18 @@ function make_pair_fun(): SHIT_1170_APP_PAGE_KEYS_PAIR {
 // --- ADD -------------------------------
 // put a pair the reader has already seen on the chain.
 //
-// --- WHY THE RECEIVER IS A CONTRACT: a function-call key calls
-// methods on ONE contract. a contract that is not deployed cannot be
-// called, so a typo in the receiver id would burn the key's usefulness.
+// --- WHY THE RECEIVER IS AN ACCOUNT: a function-call key calls methods
+// on ONE account. the reader knows which one they mean.
+//
+// --- WHY THE ALLOWANCE IS PASSED AS YOCTONEAR: the allowance is a
+// LIMIT on money, so it travels as the exact number the chain stores.
+// the reader typed it in NEAR and the conversion happened before this
+// point.
 async function add_key_fun(
   pair: SHIT_1170_APP_PAGE_KEYS_PAIR,
   receiver_id: string,
   method_names: string[],
+  allowance_yocto: string | null,
 ): Promise<SHIT_1170_APP_PAGE_KEYS_ADD_RESULT> {
   const account_id = SHIT_1170_AUTH.get_account_id();
   if (account_id === null) {
@@ -128,6 +135,7 @@ async function add_key_fun(
       secret_key: "",
       receiver_id,
       method_names,
+      allowance_yocto,
       error: "YOU ARE NOT SIGNED IN",
       declined: false,
       tx_hash: null,
@@ -142,6 +150,7 @@ async function add_key_fun(
       pair.public_key,
       receiver_id,
       method_names,
+      allowance_yocto,
     );
     const outcomes = (await wallet.signAndSendTransactions({
       signerId: account_id,
@@ -161,6 +170,7 @@ async function add_key_fun(
       secret_key: pair.secret_key,
       receiver_id,
       method_names,
+      allowance_yocto,
       created_at: Date.now(),
     });
 
@@ -169,6 +179,7 @@ async function add_key_fun(
       secret_key: pair.secret_key,
       receiver_id,
       method_names,
+      allowance_yocto,
       error: null,
       declined: false,
       tx_hash: outcome_hash_fun(outcomes[0]),
@@ -179,6 +190,7 @@ async function add_key_fun(
       secret_key: "",
       receiver_id,
       method_names,
+      allowance_yocto,
       error: is_declined_fun(err)
         ? null
         : err instanceof Error

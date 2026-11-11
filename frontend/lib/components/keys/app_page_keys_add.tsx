@@ -35,6 +35,7 @@ import { SHIT_1170_AUTH } from "../../ts/shared/auth_status";
 import { SHIT_1170_APP_PAGE_KEYS_STORE } from "../../ts/keys/app_page_keys_store";
 import { SHIT_1170_APP_PAGE_KEYS_ADD } from "../../ts/keys/app_page_keys_add";
 import { SHIT_1170_APP_PAGE_KEYS_ACCOUNT_ID } from "../../ts/keys/app_page_keys_account_id";
+import { SHIT_1170_APP_PAGE_KEYS_ALLOWANCE } from "../../ts/keys/app_page_keys_allowance";
 import { SHIT_1170_APP_PAGE_KEYS_URL } from "../../ts/keys/app_page_keys_url";
 import { SHIT_1170_TOAST_STORE } from "../../ts/shared/toast_store";
 // ========================================
@@ -67,6 +68,10 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD_FUN() {
   const [methods, set_methods] = use_state(
     SHIT_1170_APP_PAGE_KEYS_URL.read_methods() ?? "",
   );
+  // the allowance, as the reader typed it — in NEAR, not yoctoNEAR.
+  const [allowance, set_allowance] = use_state(
+    SHIT_1170_APP_PAGE_KEYS_URL.read_allowance() ?? "",
+  );
   const [adding, set_adding] = use_state(false);
   // the pair the reader is shown BEFORE they approve anything. null
   // until they ask for one.
@@ -92,6 +97,17 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD_FUN() {
     receiver.length > 0 &&
     SHIT_1170_APP_PAGE_KEYS_ACCOUNT_ID.is_valid(receiver);
   const method_names = parse_methods_fun(methods);
+  // the allowance, in yoctoNEAR. null means the key may attach
+  // nothing.
+  const allowance_yocto = SHIT_1170_APP_PAGE_KEYS_ALLOWANCE.parse(allowance);
+  // --- WHY A TYPED NUMBER THAT DOES NOT PARSE IS AN ERROR AND NOT A
+  // SILENT NO ALLOWANCE: a reader who types "1,5" and gets a key with
+  // no allowance has been given something they did not ask for. the
+  // box says what is wrong.
+  const allowance_typed = allowance.trim().length > 0;
+  const allowance_bad = allowance_typed && allowance_yocto === null;
+  const allowance_human =
+    SHIT_1170_APP_PAGE_KEYS_ALLOWANCE.format(allowance_yocto).human;
 
   const make_pair_fun = () => {
     set_pair(SHIT_1170_APP_PAGE_KEYS_ADD.make_pair());
@@ -117,12 +133,14 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD_FUN() {
             pair,
             receiver,
             method_names,
+            allowance_yocto,
           );
           if (outcome.declined) return null;
           if (outcome.error !== null) return outcome.error;
           set_pair(null);
           set_receiver_id("");
           set_methods("");
+          set_allowance("");
           SHIT_1170_TOAST_STORE.show(
             "success",
             "KEY ADDED",
@@ -203,6 +221,31 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD_FUN() {
         />
       </label>
 
+      <label class="keys-field">
+        <span>ALLOWANCE IN NEAR (EMPTY MEANS THE KEY CAN SPEND NOTHING)</span>
+        <input
+          type="text"
+          value={allowance}
+          placeholder="1.5"
+          spellcheck={false}
+          inputMode="decimal"
+          disabled={adding || busy}
+          onInput={(event) => {
+            set_allowance((event.currentTarget as HTMLInputElement).value);
+          }}
+        />
+      </label>
+
+      {allowance_bad && (
+        <p class="keys-note is-error">
+          THAT IS NOT A NEAR AMOUNT — A NUMBER LIKE 1.5, AND NO MORE THAN SIX
+          DECIMALS
+        </p>
+      )}
+      {allowance_typed && !allowance_bad && (
+        <p class="keys-note is-good">ALLOWANCE: {allowance_human}</p>
+      )}
+
       {pair === null ? (
         <button
           type="button"
@@ -225,6 +268,8 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD_FUN() {
               {receiver.length === 0 ? "NO ACCOUNT" : receiver}
               {" — METHODS: "}
               {method_names.length === 0 ? "ANY" : method_names.join(", ")}
+              {" — ALLOWANCE: "}
+              {allowance_human ?? "NOTHING"}
             </p>
             <div class="keys-made-actions">
               <button

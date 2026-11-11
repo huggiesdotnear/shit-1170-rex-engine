@@ -194,10 +194,61 @@ describe("the keys page's merge of the chain and the record", () => {
         secret_key: null,
         receiver_id: "contract.near",
         method_names: [],
+        allowance_yocto: null,
       },
     ]);
     expect(merged.length).toBe(1);
     expect(merged[0].removed).toBe(true);
+  });
+
+  test("a stored key's ALLOWANCE comes through when the chain has none", () => {
+    // the chain's own answer for this key is an allowance of "1000" —
+    // so a fixture with NO allowance is needed to see the record's
+    // figure come through.
+    const chain = SHIT_1170_APP_PAGE_KEYS_ROWS.rows_from_access_keys({
+      keys: [
+        {
+          public_key: "ed25519:limited1",
+          access_key: {
+            nonce: 5,
+            permission: {
+              FunctionCall: {
+                receiver_id: "contract.near",
+                method_names: ["method_one"],
+                allowance: null,
+              },
+            },
+          },
+        },
+      ],
+    });
+    const merged = SHIT_1170_APP_PAGE_KEYS_ROWS.merge_vault(chain, [
+      {
+        public_key: "ed25519:limited1",
+        secret_key: null,
+        receiver_id: "contract.near",
+        method_names: ["method_one"],
+        allowance_yocto: "1500000000000000000000000",
+      },
+    ]);
+    expect(merged[0].allowance).toBe("1500000000000000000000000");
+  });
+
+  test("the CHAIN's allowance wins over the record's", () => {
+    const chain = SHIT_1170_APP_PAGE_KEYS_ROWS.rows_from_access_keys({
+      keys: [LIMITED_KEY],
+    });
+    const merged = SHIT_1170_APP_PAGE_KEYS_ROWS.merge_vault(chain, [
+      {
+        public_key: "ed25519:limited1",
+        secret_key: null,
+        receiver_id: "contract.near",
+        method_names: ["method_one"],
+        allowance_yocto: "999999999999999999999999",
+      },
+    ]);
+    // the chain is the truth about what the account has.
+    expect(merged[0].allowance).toBe("1000");
   });
 });
 // ========================================
