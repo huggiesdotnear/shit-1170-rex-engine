@@ -110,6 +110,7 @@ everything for that page. no component fetches anything.
 - [`frontend.app.token.index.md`](./frontend.app.token.index.md) - `frontend/app/token/index.html` - ?id= - TOKEN
 - [`frontend.app.token.shit-1170.md`](./frontend.app.token.shit-1170.md) - `frontend/app/token/shit-1170.html`
 - [`frontend.app.contract.rhea.md`](./frontend.app.contract.rhea.md) - `frontend/app/contract/rhea.html` - RHEA
+- [`frontend.app.contract.chess.md`](./frontend.app.contract.chess.md) - `frontend/app/contract/chess.html` - CHESS
 - [`frontend.app.contract.intear-dex.md`](./frontend.app.contract.intear-dex.md) - `frontend/app/contract/intear-dex.html`
 - [`frontend.app.contract.sputnik-dao.md`](./frontend.app.contract.sputnik-dao.md) - `frontend/app/contract/sputnik-dao.html` - ?dao_id= - SPUTNIK DAO
 - [`frontend.app.contract.pumpopoly.md`](./frontend.app.contract.pumpopoly.md) - `frontend/app/contract/pumpopoly.html` - ?id=

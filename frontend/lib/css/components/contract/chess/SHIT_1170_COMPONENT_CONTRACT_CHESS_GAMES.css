@@ -1,0 +1,137 @@
+/*==================================*/
+/* SHIT_1170_COMPONENT_CONTRACT_CHESS_GAMES
+   the chess page's game table: one row per game, with the players and
+   the link out to the protocol pawns web app. */
+/*==================================*/
+#SHIT_1170_COMPONENT_CONTRACT_CHESS_GAMES .results-scroll {
+  width: 100%;
+  min-width: 0;
+}
+#SHIT_1170_COMPONENT_CONTRACT_CHESS_GAMES .results {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  gap: 6px;
+}
+#SHIT_1170_COMPONENT_CONTRACT_CHESS_GAMES .loading {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  opacity: 0.6;
+  text-align: center;
+  margin: 8px 0 0;
+}
+#SHIT_1170_COMPONENT_CONTRACT_CHESS_GAMES .error {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: #ff8a80;
+  margin: 0 0 8px;
+}
+#SHIT_1170_COMPONENT_CONTRACT_CHESS_GAMES .count {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  opacity: 0.7;
+  margin: 0 0 8px;
+  text-align: left;
+}
+/*==================================*/
+#SHIT_1170_COMPONENT_CONTRACT_CHESS_GAMES .game {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.14);
+  color: inherit;
+  text-align: left;
+  text-decoration: none;
+}
+#SHIT_1170_COMPONENT_CONTRACT_CHESS_GAMES .game:hover {
+  border-color: rgba(255, 255, 255, 0.38);
+  background: rgba(0, 0, 0, 0.22);
+}
+#SHIT_1170_COMPONENT_CONTRACT_CHESS_GAMES .game-id {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+#SHIT_1170_COMPONENT_CONTRACT_CHESS_GAMES .game-id strong {
+  font-variant-numeric: tabular-nums;
+}
+#SHIT_1170_COMPONENT_CONTRACT_CHESS_GAMES .game-date {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  opacity: 0.6;
+}
+#SHIT_1170_COMPONENT_CONTRACT_CHESS_GAMES .game-players {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 12px;
+}
+#SHIT_1170_COMPONENT_CONTRACT_CHESS_GAMES .game-player {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#SHIT_1170_COMPONENT_CONTRACT_CHESS_GAMES .game-versus {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  opacity: 0.5;
+  flex: 0 0 auto;
+}
+#SHIT_1170_COMPONENT_CONTRACT_CHESS_GAMES .game-outcome {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  font-size: 11px;
+  opacity: 0.85;
+  text-align: right;
+}
+#SHIT_1170_COMPONENT_CONTRACT_CHESS_GAMES .game-tag {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  padding: 2px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 6px;
+  opacity: 0.8;
+}
+#SHIT_1170_COMPONENT_CONTRACT_CHESS_GAMES .game-link {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  opacity: 0.6;
+  white-space: nowrap;
+}
+/*==================================*/
+@media (max-width: 640px) {
+  #SHIT_1170_COMPONENT_CONTRACT_CHESS_GAMES .game {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  #SHIT_1170_COMPONENT_CONTRACT_CHESS_GAMES .game-players {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  #SHIT_1170_COMPONENT_CONTRACT_CHESS_GAMES .game-outcome {
+    grid-column: 1;
+    grid-row: 3;
+    justify-content: flex-start;
+    text-align: left;
+  }
+  #SHIT_1170_COMPONENT_CONTRACT_CHESS_GAMES .game-link {
+    grid-column: 2;
+    grid-row: 3;
+  }
+}
+/*==================================*/

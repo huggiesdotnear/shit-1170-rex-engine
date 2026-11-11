@@ -21,6 +21,12 @@ export function list_contract_cards_fun(): SHIT_1170_CONTRACT_CARD[] {
       page: "rhea.html",
     },
     {
+      key: "chess",
+      title: "Chess",
+      contract_ids: ["app.chess-game.near"],
+      page: "chess.html",
+    },
+    {
       key: "intear-dex",
       title: "INTEAR DEX engine",
       contract_ids: ["dex.intear.near"],

@@ -19,6 +19,7 @@
         "@sleet-js/intear-dex-aggregator-tool-box": "0.1.3",
         "@sleet-js/middleman-intear-api": "0.1.0",
         "@sleet-js/middleman-intear-dex-api": "0.1.0",
+        "@sleet-js/middleman-protocol-pawns-api": "0.1.0",
         "@sleet-js/middleman-rhea-api": "0.1.1",
         "lucide-preact": "^1.59.0",
         "near-kit": "^0.20.2",
@@ -121,6 +122,8 @@
     "@sleet-js/middleman-intear-api": ["@sleet-js/middleman-intear-api@0.1.0", "", { "dependencies": { "@sleet-js/intear-api-tool-box": "^0.1.1" }, "peerDependencies": { "typescript": "^7" } }, "sha512-SOsqSjjOgPCGiFy7encRtl5nKFh8EQwvqJkf+GbJjcv5ChzG7b0lbN901aRxqBACdP9fkk2mI+EMPDPCrwp8yA=="],
 
     "@sleet-js/middleman-intear-dex-api": ["@sleet-js/middleman-intear-dex-api@0.1.0", "", { "peerDependencies": { "typescript": "^7" } }, "sha512-x31mdjmyr/1bIsv/9dwV+3ApnXOJi2wJT899D9t7L5Y7TeF4OdoGUqwp+NUV4w8aU1L2SRzHaBDaUyLuuAAUgA=="],
+
+    "@sleet-js/middleman-protocol-pawns-api": ["@sleet-js/middleman-protocol-pawns-api@0.1.0", "", { "peerDependencies": { "typescript": "^7" }, "bin": { "protocol-pawns-bets": "bin/protocol_pawns_bets.ts", "protocol-pawns-game": "bin/protocol_pawns_game.ts", "protocol-pawns-info": "bin/protocol_pawns_info.ts", "protocol-pawns-games": "bin/protocol_pawns_games.ts", "protocol-pawns-stats": "bin/protocol_pawns_stats.ts", "protocol-pawns-events": "bin/protocol_pawns_events.ts", "protocol-pawns-account": "bin/protocol_pawns_account.ts", "protocol-pawns-challenges": "bin/protocol_pawns_challenges.ts", "protocol-pawns-game-moves": "bin/protocol_pawns_game_moves.ts", "protocol-pawns-account-query": "bin/protocol_pawns_account_query.ts", "protocol-pawns-account-stats": "bin/protocol_pawns_account_stats.ts", "protocol-pawns-leaderboard-elo": "bin/protocol_pawns_leaderboard_elo.ts", "protocol-pawns-leaderboard-ppp": "bin/protocol_pawns_leaderboard_ppp.ts", "protocol-pawns-account-challenges": "bin/protocol_pawns_account_challenges.ts", "protocol-pawns-account-active-game": "bin/protocol_pawns_account_active_game.ts" } }, "sha512-TiQGgWqJFe8uxqZgSOiujf9I0twJNzkdZylnnMSYGp+K9h3/X15YYPyR3fJldZAKx8ROTDr1rU5Fq1LNAB0aCg=="],
 
     "@sleet-js/middleman-rhea-api": ["@sleet-js/middleman-rhea-api@0.1.1", "", { "peerDependencies": { "typescript": "^7" } }, "sha512-maz6RxeHQ439vNhnM0gNCgalW4OT2c5VA6hU3O/SnQ2ceeR/7Pwu9R+w4/+g4zsT7l/oG66Ww8dnopsduG/9dA=="],
 
