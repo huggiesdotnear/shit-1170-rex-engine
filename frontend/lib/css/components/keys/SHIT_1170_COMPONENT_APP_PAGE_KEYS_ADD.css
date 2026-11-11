@@ -1,11 +1,19 @@
 /*==================================*/
 /* SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD
-   the keys page's add form: the contract, the methods, the button, and
-   the private key that comes back.
+   the keys page's add form: the contract, the methods, the key pair the
+   reader sees BEFORE they approve anything, and the button that puts it
+   on the chain.
 
-   the private key gets its own box because it is the one thing on the
-   page the reader MUST take away — it is darker, and it is the only
-   piece of monospace text that is not a public key. */
+   --- WHY THE SECTION IS ON A WHITE BACKGROUND: the page is the app's
+   red, and a red form on a red page reads as a form with no edges. the
+   white block makes the add section a thing you can SEE, and the dark
+   text on it is the same treatment every other app in the browser uses.
+   it is the one place on this page where the reader types, so it is the
+   one place worth pulling out of the page.
+
+   --- WHY THE INPUTS ARE DARK ON THE WHITE: the base input is a dark
+   box on the red page. on a white block that would be a hole, so the
+   inputs are given their own light look here. */
 /*==================================*/
 #SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD .keys-add {
   display: flex;
@@ -14,30 +22,40 @@
   gap: 8px;
   width: 100%;
   min-width: 0;
+  box-sizing: border-box;
+  padding: 16px;
+  border-radius: 16px;
+  background: #ffffff;
+  color: #2b2b2b;
+  text-align: left;
 }
 /*==================================*/
 /* the group heading. */
 #SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD .keys-group {
-  margin: 10px 0 0;
+  margin: 0;
   font-size: 13px;
   letter-spacing: 0.12em;
   text-align: left;
+  color: #2b2b2b;
 }
 /*==================================*/
 /* the pale notes: what a limited key is, and the warning about the
-   private key. */
+   private key. on the white block the pale colour is a DARK grey, not
+   the pale one the page uses on red. */
 #SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD .keys-note {
   margin: 0;
   font-family: Arial, Helvetica, sans-serif;
   font-size: 11px;
   line-height: 1.5;
   letter-spacing: 0.04em;
-  opacity: 0.8;
+  color: #5a5a5a;
   text-align: left;
 }
 #SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD .keys-note.is-error {
-  color: #ffe8e6;
-  opacity: 1;
+  color: #b3261e;
+}
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD .keys-note.is-good {
+  color: #146c2e;
 }
 /*==================================*/
 /* one input: its label above, the box below. */
@@ -52,8 +70,10 @@
 #SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD .keys-field > span {
   font-size: 10px;
   letter-spacing: 0.08em;
-  opacity: 0.85;
+  color: #4a4a4a;
 }
+/*==================================*/
+/* the input itself: a light box on the white block. */
 #SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD .keys-field > input {
   width: 100%;
   max-width: 100%;
@@ -61,26 +81,66 @@
   padding: 9px 12px;
   font-family: "Courier New", Courier, monospace;
   font-size: 12px;
-  color: var(--color-fontend);
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: #1c1c1c;
+  background: #f2f2f2;
+  border: 1px solid #c9c9c9;
   border-radius: 10px;
 }
 #SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD .keys-field > input:focus {
-  outline: 2px solid var(--color-middle);
+  outline: 2px solid #009aab;
   outline-offset: 1px;
 }
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD .keys-field > input:disabled {
+  opacity: 0.6;
+}
 /*==================================*/
-/* the box the new key comes back in. */
-#SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD .keys-made {
+/* the buttons on the white block. the base button is a pale fill with
+   red text, which is right for the red page and wrong on white, so the
+   buttons here carry their own colours. */
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD .keys-add > button,
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD .keys-made-actions button {
+  color: #ffffff;
+  background-color: #da291c;
+  border-color: #da291c;
+}
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD .keys-add > button:hover,
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD .keys-made-actions button:hover {
+  background-color: #009aab;
+  border-color: #009aab;
+  color: #ffffff;
+}
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD .keys-add > button:disabled,
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD .keys-made-actions button:disabled {
+  background-color: #b9b9b9;
+  border-color: #b9b9b9;
+  color: #ffffff;
+}
+/*==================================*/
+/* the CHECK THE CONTRACT button is the quiet one — it is a check, not
+   the thing the reader came to do. */
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD .keys-check {
+  color: #2b2b2b !important;
+  background-color: #ededed !important;
+  border-color: #c9c9c9 !important;
+}
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD .keys-check:hover:not(:disabled) {
+  color: #ffffff !important;
+  background-color: #009aab !important;
+  border-color: #009aab !important;
+}
+/*==================================*/
+/* the preview box: the pair the reader is shown BEFORE they approve
+   anything. it is the lightest thing on the white block, so the eye
+   goes to the keys and not to the form. */
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD .keys-preview {
   display: flex;
   flex-direction: column;
   gap: 6px;
   box-sizing: border-box;
   padding: 12px;
-  border: 2px solid var(--color-middle);
+  border: 2px solid #009aab;
   border-radius: 12px;
-  background: rgba(0, 0, 0, 0.28);
+  background: #f7f7f7;
   text-align: left;
 }
 /*==================================*/
@@ -91,8 +151,9 @@
   font-size: 10px;
   line-height: 1.45;
   letter-spacing: 0.06em;
-  opacity: 0.8;
-  overflow-wrap: anywhere;
+  color: #5a5a5a;
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 /*==================================*/
 /* the public key. */
@@ -101,8 +162,10 @@
   font-family: "Courier New", Courier, monospace;
   font-size: 11px;
   line-height: 1.45;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  word-break: normal;
   text-align: left;
+  color: #1c1c1c;
 }
 /*==================================*/
 /* the PRIVATE key. it is highlighted because it is the one thing the
@@ -113,13 +176,15 @@
   font-family: "Courier New", Courier, monospace;
   font-size: 11px;
   line-height: 1.45;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  word-break: normal;
   text-align: left;
-  background: rgba(0, 0, 0, 0.35);
+  color: #1c1c1c;
+  background: #e8e8e8;
   border-radius: 8px;
 }
 /*==================================*/
-/* the copy and the done buttons. */
+/* the copy and the make-another buttons. */
 #SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD .keys-made-actions {
   display: flex;
   align-items: center;
@@ -131,5 +196,20 @@
   flex: 1 1 100%;
   width: 100%;
   max-width: 100%;
+  margin: 0;
+}
+/*==================================*/
+/* the MAKE ANOTHER button is the quiet one. */
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD .keys-made-actions .keys-clear {
+  color: #2b2b2b !important;
+  background-color: #ededed !important;
+  border-color: #c9c9c9 !important;
+}
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD
+  .keys-made-actions
+  .keys-clear:hover:not(:disabled) {
+  color: #ffffff !important;
+  background-color: #009aab !important;
+  border-color: #009aab !important;
 }
 /*==================================*/

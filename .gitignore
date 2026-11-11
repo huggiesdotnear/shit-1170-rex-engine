@@ -43,4 +43,12 @@ node_modules
 # out, silently, unread. a test that catches the shape drifting is not
 # scratch — it is the thing that keeps the reader's approval meaningful.
 !frontend/lib/ts/keys/app_page_keys_wallet_action.test.ts
+
+# --- WHY THIS ONE IS TRACKED ---
+# this test pins the CONTRACT CHECK the add form makes before it offers
+# to sign anything. a function-call key calls ONE contract, and a
+# contract with no code deployed cannot be called — so the key would be
+# made, it would cost a transaction, and it could never do anything.
+# the test also pins that a failed check is never a pass.
+!frontend/lib/ts/keys/app_page_keys_contract_check.test.ts
 /.openchamber

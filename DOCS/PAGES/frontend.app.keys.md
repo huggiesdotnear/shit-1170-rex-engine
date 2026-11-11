@@ -6,6 +6,8 @@ the full access keys are shown at the top of the list and are never pickable: a 
 
 the list always comes fresh from the chain. the browser's own record of the keys it made is folded in on top: the private key of a limited key is kept in the browser's own indexeddb, so the reader can come back for it, and a stored key the chain no longer has stays on the page marked REMOVED rather than vanishing.
 
+the add form sits on a white block. it checks that the contract the key will call really is a deployed contract, and it shows the key pair — the public key and the private key — before the reader approves anything, so what they approve is what they were shown.
+
 ```html
 <body>
   <!--==========================================-->

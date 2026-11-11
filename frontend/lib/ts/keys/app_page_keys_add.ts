@@ -2,9 +2,14 @@
 // add an access key to the signed-in account.
 //
 // --- WHY THE KEY IS GENERATED IN THE BROWSER: the private key of a new
-// access key has to be shown to the reader ONCE, and nowhere else. if
-// it were generated on a server, the server would hold it. so the
-// browser makes it, adds it to the chain, and shows it to the reader.
+// access key has to be shown to the reader, and nowhere else. if it
+// were generated on a server, the server would hold it. so the browser
+// makes it, shows it, and adds it to the chain.
+//
+// --- WHY THE PAIR IS MADE BEFORE THE CHAIN IS TOUCHED: the reader sees
+// the public key and the private key BEFORE they approve anything, so
+// what they approve is what they were shown. the pair the reader sees is
+// the pair that goes on the chain — it is made once and carried through.
 //
 // --- WHY ONLY LIMITED KEYS ARE MADE: a limited key is one that can
 // only call named methods on one contract. it is safe to hand to
@@ -24,6 +29,14 @@ import { shit_1170_wallet_add_key_fun } from "./app_page_keys_wallet_action";
 // ========================================
 // ========================================
 // --- TYPES ------------------------------
+// a key pair the reader can see BEFORE it goes on the chain.
+export interface SHIT_1170_APP_PAGE_KEYS_PAIR {
+  // the public key, the way the chain spells it.
+  public_key: string;
+  // the private key — the ONLY copy.
+  secret_key: string;
+}
+// ========================================
 // what an add produced.
 export interface SHIT_1170_APP_PAGE_KEYS_ADD_RESULT {
   // the new key's public key.
@@ -78,13 +91,33 @@ function outcome_hash_fun(outcome: unknown): string | null {
 }
 // ========================================
 // ========================================
+// --- MAKE ------------------------------
+// make a key pair, so the reader can see it before anything is signed.
+//
+// --- WHY THIS IS SEPARATE FROM THE ADD: the reader sees the pair
+// first, reads it, copies it, and only then approves the transaction.
+// the pair the reader sees IS the pair that goes on the chain.
+//
+// --- WHY THE PAIR IS MADE IN THE BROWSER: a private key made on a
+// server is a private key the server holds. this one exists in the
+// reader's browser and nowhere else.
+function make_pair_fun(): SHIT_1170_APP_PAGE_KEYS_PAIR {
+  const key_pair = generateKey();
+  return {
+    public_key: key_pair.publicKey.toString(),
+    secret_key: key_pair.secretKey,
+  };
+}
+// ========================================
+// ========================================
 // --- ADD -------------------------------
-// make a limited key and put it on the chain.
+// put a pair the reader has already seen on the chain.
 //
 // --- WHY THE RECEIVER IS A CONTRACT: a function-call key calls
 // methods on ONE contract. a contract that is not deployed cannot be
 // called, so a typo in the receiver id would burn the key's usefulness.
 async function add_key_fun(
+  pair: SHIT_1170_APP_PAGE_KEYS_PAIR,
   receiver_id: string,
   method_names: string[],
 ): Promise<SHIT_1170_APP_PAGE_KEYS_ADD_RESULT> {
@@ -101,16 +134,12 @@ async function add_key_fun(
     };
   }
 
-  const key_pair = generateKey();
-  const public_key = key_pair.publicKey.toString();
-  const secret_key = key_pair.secretKey;
-
   try {
     const connector = near_connect_client();
     const wallet = await connector.wallet();
     const transaction = shit_1170_wallet_add_key_fun(
       account_id,
-      public_key,
+      pair.public_key,
       receiver_id,
       method_names,
     );
@@ -126,18 +155,18 @@ async function add_key_fun(
     // so it is better to lose it than to write a secret that is out of
     // step with the chain.
     await SHIT_1170_KEY_VAULT.put({
-      id: public_key,
+      id: pair.public_key,
       account_id,
-      public_key,
-      secret_key,
+      public_key: pair.public_key,
+      secret_key: pair.secret_key,
       receiver_id,
       method_names,
       created_at: Date.now(),
     });
 
     return {
-      public_key,
-      secret_key,
+      public_key: pair.public_key,
+      secret_key: pair.secret_key,
       receiver_id,
       method_names,
       error: null,
@@ -163,6 +192,7 @@ async function add_key_fun(
 // ========================================
 // --- PUBLIC ---------------------------
 export const SHIT_1170_APP_PAGE_KEYS_ADD = {
+  make_pair: make_pair_fun,
   add: add_key_fun,
 };
 // ========================================

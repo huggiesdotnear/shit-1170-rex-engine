@@ -54,6 +54,19 @@
   text-align: left;
 }
 /*==================================*/
+/* the full access card has no pick box, so its body is the whole card
+   and it stacks. the body takes the whole width, so the head gets a
+   full line and the key gets the one under it. */
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST .keys-row.is-full-access {
+  flex-direction: column;
+  gap: 6px;
+}
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST
+  .keys-row.is-full-access
+  .keys-row-body {
+  width: 100%;
+}
+/*==================================*/
 /* the limited row is a label, so it sits on one line with its box. */
 #SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST .keys-row.is-limited {
   cursor: pointer;
@@ -82,18 +95,41 @@
   flex: 1 1 auto;
 }
 /*==================================*/
-/* the head of a row: the kind on the left, the nonce on the right. */
+/* the head of a row: the kind on the left, the nonce on the right.
+   --- WHY THE HEAD IS ITS OWN LINE AND NOT A FLEX ITEM: the head sat
+   beside the public key in a flex row, and the key — a long base58
+   string — could shrink to a single character. the head shrank with
+   it, and the label inside the head shrank to its minimum, which with
+   `overflow-wrap: anywhere` is ONE LETTER. that is what put "FULL
+   ACCESS" down the page one letter per line.
+   `flex-shrink: 0` means the head never gives up its width, and the
+   key takes what is left. */
 #SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST .keys-row-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 8px;
+  width: 100%;
   min-width: 0;
+  flex-shrink: 0;
 }
+/*==================================*/
+/* the kind — "FULL ACCESS" or the contract the key may call.
+   --- WHY IT TAKES THE FREE SPACE: the nonce beside it cannot shrink,
+   so without a flex basis of its own the kind collapsed to nothing.
+   `flex: 1 1 auto` gives it the room, and `min-width: 0` lets it
+   shrink below its content instead of overflowing. */
 #SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST .keys-kind {
+  flex: 1 1 auto;
+  min-width: 0;
   font-size: 11px;
   letter-spacing: 0.08em;
-  overflow-wrap: anywhere;
+  /* --- WHY NOT `overflow-wrap: anywhere` HERE: that breaks a word at
+     ANY character, so a narrow box put one letter on every line. the
+     word is allowed to overflow instead, and the contract id — the one
+     thing here that can be long — is cut by the reader's own eye. */
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 #SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST .keys-nonce {
   flex: 0 0 auto;
@@ -103,13 +139,18 @@
   opacity: 0.7;
 }
 /*==================================*/
-/* the public key, broken anywhere so it never widens the column. */
+/* the public key, broken anywhere so it never widens the column.
+   --- WHY A KEY BREAKS BUT A LABEL DOES NOT: a base58 key is one long
+   word with no spaces, so it has to break somewhere or it overflows.
+   but breaking it is the LAST resort — the key sits on its own line, so
+   it has the whole width and only breaks when it truly runs out. */
 #SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST .keys-public-key {
   display: block;
   font-family: "Courier New", Courier, monospace;
   font-size: 11px;
   line-height: 1.45;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  word-break: break-all;
   text-align: left;
 }
 /*==================================*/
@@ -171,7 +212,8 @@
   font-family: "Courier New", Courier, monospace;
   font-size: 11px;
   line-height: 1.45;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  word-break: break-all;
   text-align: left;
   background: rgba(0, 0, 0, 0.35);
   border-radius: 8px;

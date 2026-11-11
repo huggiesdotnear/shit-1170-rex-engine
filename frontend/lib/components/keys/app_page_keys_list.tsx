@@ -160,16 +160,15 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST_FUN() {
       {full_access.length > 0 && (
         <>
           <h3 class="keys-group">FULL ACCESS</h3>
-          <p class="keys-note">
-            THESE KEYS ARE THE ACCOUNT ITSELF. THEY CANNOT BE REMOVED FROM HERE.
-          </p>
           {full_access.map((row) => (
             <div class="keys-row is-full-access" key={row.public_key}>
-              <div class="keys-row-head">
-                <span class="keys-kind">FULL ACCESS</span>
-                <span class="keys-nonce">NONCE {row.nonce}</span>
+              <div class="keys-row-body">
+                <div class="keys-row-head">
+                  <span class="keys-kind">FULL ACCESS</span>
+                  <span class="keys-nonce">NONCE {row.nonce}</span>
+                </div>
+                <code class="keys-public-key">{row.public_key}</code>
               </div>
-              <code class="keys-public-key">{row.public_key}</code>
             </div>
           ))}
         </>
@@ -178,10 +177,6 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST_FUN() {
       {limited.length > 0 && (
         <>
           <h3 class="keys-group">LIMITED</h3>
-          <p class="keys-note">
-            THESE KEYS CAN ONLY CALL THE CONTRACT AND THE METHODS BELOW. PICK
-            THE ONES YOU WANT GONE.
-          </p>
           {limited.map((row) => {
             const is_picked = picked.includes(row.public_key);
             const is_revealed = revealed.includes(row.public_key);

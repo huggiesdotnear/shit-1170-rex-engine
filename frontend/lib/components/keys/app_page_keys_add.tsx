@@ -6,11 +6,17 @@
 // page, above the list — the list says what the account has, and the
 // form says what the reader can add to it.
 //
-// --- WHY THE PRIVATE KEY IS SHOWN ONCE AND THEN FORGOTTEN: the reader
-// has to take it away with them — it is the only copy. so it is on the
-// screen when the key is made, with a copy button, and it is not kept
-// anywhere in the app. a key that the app kept would be a key the app
-// could lose.
+// --- WHY THE KEY PAIR IS SHOWN BEFORE THE READER APPROVES ANYTHING:
+// the reader is asked to sign a transaction that adds a key. they must
+// be able to read THAT key first — its public key and its private key —
+// so they know what they are approving and what they are taking away.
+// so the pair is made FIRST, shown, and only then offered to the chain.
+// the pair on the screen IS the pair that goes on the chain.
+//
+// --- WHY THE CONTRACT IS CHECKED: a function-call key calls ONE
+// contract, and a contract that is not deployed cannot be called. so the
+// key would be made, it would cost a transaction, and it could never do
+// anything. the reader is told before they sign, not after.
 //
 // mounts into <div id="SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD">.
 import { render } from "preact";
@@ -19,11 +25,12 @@ import { SHIT_1170_MOUNT_ID } from "../../ts/shared/mount_ids";
 import { SHIT_1170_AUTH } from "../../ts/shared/auth_status";
 import { SHIT_1170_APP_PAGE_KEYS_STORE } from "../../ts/keys/app_page_keys_store";
 import { SHIT_1170_APP_PAGE_KEYS_ADD } from "../../ts/keys/app_page_keys_add";
+import { SHIT_1170_APP_PAGE_KEYS_CONTRACT } from "../../ts/keys/app_page_keys_contract_check";
 import { SHIT_1170_TOAST_STORE } from "../../ts/shared/toast_store";
 // ========================================
 // ========================================
 // --- HELPERS ----------------------------
-// the receiver and the methods, read out of the two inputs.
+// the methods, read out of the input.
 //
 // --- WHY THE METHODS ARE SPLIT ON THE COMMA: a function-call key names
 // its methods as a list, and a comma separated line is the plainest way
@@ -44,12 +51,16 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD_FUN() {
   const [receiver_id, set_receiver_id] = use_state("");
   const [methods, set_methods] = use_state("");
   const [adding, set_adding] = use_state(false);
-  const [made_key, set_made_key] = use_state<{
+  // the pair the reader is shown BEFORE they approve anything. null
+  // until they ask for one.
+  const [pair, set_pair] = use_state<{
     public_key: string;
     secret_key: string;
-    receiver_id: string;
-    method_names: string[];
   } | null>(null);
+  // the message about the contract, and whether it is good.
+  const [contract_error, set_contract_error] = use_state<string | null>(null);
+  const [contract_ok, set_contract_ok] = use_state(false);
+  const [checking, set_checking] = use_state(false);
   const [error, set_error] = use_state<string | null>(null);
 
   if (account_id === null) {
@@ -60,11 +71,28 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD_FUN() {
     );
   }
 
+  const check_fun = async () => {
+    set_checking(true);
+    set_contract_ok(false);
+    set_contract_error(null);
+    try {
+      const result = await SHIT_1170_APP_PAGE_KEYS_CONTRACT.check(receiver_id);
+      set_contract_error(result.error);
+      set_contract_ok(result.error === null);
+    } finally {
+      set_checking(false);
+    }
+  };
+
+  const make_pair_fun = () => {
+    set_pair(SHIT_1170_APP_PAGE_KEYS_ADD.make_pair());
+    set_error(null);
+  };
+
   const add_fun = async () => {
     if (adding) return;
-    const receiver = receiver_id.trim();
-    if (receiver.length === 0) {
-      set_error("THE CONTRACT THE KEY CALLS IS EMPTY");
+    if (pair === null) {
+      set_error("MAKE THE KEY FIRST");
       return;
     }
     set_adding(true);
@@ -73,18 +101,17 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD_FUN() {
       const result = await SHIT_1170_APP_PAGE_KEYS_STORE.run_action(
         async () => {
           const outcome = await SHIT_1170_APP_PAGE_KEYS_ADD.add(
-            receiver,
+            pair,
+            receiver_id.trim(),
             parse_methods_fun(methods),
           );
+          if (outcome.declined) return null;
           if (outcome.error !== null) return outcome.error;
-          set_made_key({
-            public_key: outcome.public_key,
-            secret_key: outcome.secret_key,
-            receiver_id: outcome.receiver_id,
-            method_names: outcome.method_names,
-          });
+          set_pair(null);
           set_receiver_id("");
           set_methods("");
+          set_contract_ok(false);
+          set_contract_error(null);
           SHIT_1170_TOAST_STORE.show(
             "success",
             "KEY ADDED",
@@ -129,10 +156,32 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD_FUN() {
           placeholder="contract.near"
           disabled={adding || busy}
           onInput={(event) => {
-            set_receiver_id((event.currentTarget as HTMLInputElement).value);
+            const next = (event.currentTarget as HTMLInputElement).value;
+            set_receiver_id(next);
+            // --- WHY THE CHECK IS CLEARED ON EVERY CHANGE: a contract
+            // that was checked is not a contract that is checked AFTER
+            // the reader changed it.
+            set_contract_ok(false);
+            set_contract_error(null);
           }}
         />
       </label>
+
+      {contract_error !== null && (
+        <p class="keys-note is-error">{contract_error}</p>
+      )}
+      {contract_ok && <p class="keys-note is-good">CONTRACT OK</p>}
+
+      <button
+        type="button"
+        class="keys-check"
+        disabled={adding || busy || checking || receiver_id.trim().length === 0}
+        onClick={() => {
+          void check_fun();
+        }}
+      >
+        {checking ? "CHECKING…" : "CHECK THE CONTRACT"}
+      </button>
 
       <label class="keys-field">
         <span>METHODS (COMMA SEPARATED, EMPTY MEANS ANY)</span>
@@ -147,55 +196,70 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD_FUN() {
         />
       </label>
 
-      <button
-        type="button"
-        disabled={adding || busy}
-        onClick={() => {
-          void add_fun();
-        }}
-      >
-        {adding ? "WORKING…" : "ADD THE KEY"}
-      </button>
+      {pair === null ? (
+        <button
+          type="button"
+          disabled={adding || busy}
+          onClick={() => {
+            make_pair_fun();
+          }}
+        >
+          MAKE THE KEY
+        </button>
+      ) : (
+        <>
+          <div class="keys-preview">
+            <p class="keys-detail">PUBLIC KEY</p>
+            <code class="keys-public-key">{pair.public_key}</code>
+            <p class="keys-detail">PRIVATE KEY</p>
+            <code class="keys-secret-key">{pair.secret_key}</code>
+            <p class="keys-detail">
+              THIS KEY WILL CALL: {receiver_id.trim() || "NO CONTRACT"} —
+              METHODS:{" "}
+              {parse_methods_fun(methods).length === 0
+                ? "ANY"
+                : parse_methods_fun(methods).join(", ")}
+            </p>
+            <div class="keys-made-actions">
+              <button
+                type="button"
+                onClick={() => {
+                  void copy_fun(pair.secret_key);
+                }}
+              >
+                COPY THE PRIVATE KEY
+              </button>
+              <button
+                type="button"
+                class="keys-clear"
+                disabled={adding || busy}
+                onClick={() => {
+                  set_pair(null);
+                }}
+              >
+                MAKE ANOTHER
+              </button>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            disabled={adding || busy || !contract_ok}
+            onClick={() => {
+              void add_fun();
+            }}
+            title={
+              contract_ok
+                ? "add this key to the account"
+                : "check the contract first"
+            }
+          >
+            {adding ? "WORKING…" : "ADD THE KEY"}
+          </button>
+        </>
+      )}
 
       {error !== null && <p class="keys-note is-error">{error}</p>}
-
-      {made_key !== null && (
-        <div class="keys-made">
-          <p class="keys-note">
-            THE PRIVATE KEY IS BELOW. COPY IT — IT IS ALSO SAVED IN THIS
-            BROWSER, UNDER THE KEY LIST.
-          </p>
-          <p class="keys-detail">PUBLIC KEY</p>
-          <code class="keys-public-key">{made_key.public_key}</code>
-          <p class="keys-detail">PRIVATE KEY</p>
-          <code class="keys-secret-key">{made_key.secret_key}</code>
-          <p class="keys-detail">
-            CONTRACT: {made_key.receiver_id} — METHODS:{" "}
-            {made_key.method_names.length === 0
-              ? "ANY"
-              : made_key.method_names.join(", ")}
-          </p>
-          <div class="keys-made-actions">
-            <button
-              type="button"
-              onClick={() => {
-                void copy_fun(made_key.secret_key);
-              }}
-            >
-              COPY THE PRIVATE KEY
-            </button>
-            <button
-              type="button"
-              class="keys-clear"
-              onClick={() => {
-                set_made_key(null);
-              }}
-            >
-              CLOSE
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
