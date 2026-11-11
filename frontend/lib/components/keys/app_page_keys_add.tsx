@@ -13,6 +13,14 @@
 // so the pair is made FIRST, shown, and only then offered to the chain.
 // the pair on the screen IS the pair that goes on the chain.
 //
+// --- WHY THE PAIR IS MADE ON PAGE LOAD: the key is made in the
+// browser and it costs nothing to make, so the page opens with one
+// already on screen. the reader reads it, copies the private key if
+// they want it, fills the boxes, and approves. a MAKE THE KEY button
+// in front of that would be a click that buys nothing — and the
+// GENERATE ANOTHER KEY button behind it would have thrown the key away
+// and sent the reader back for a second click.
+//
 // --- WHY THE ACCOUNT IS NOT CHECKED AGAINST THE CHAIN: the account a
 // key may call does not have to be a contract — it can be any account
 // the reader means, and they know which one they mean. so the app does
@@ -73,12 +81,21 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD_FUN() {
     SHIT_1170_APP_PAGE_KEYS_URL.read_allowance() ?? "",
   );
   const [adding, set_adding] = use_state(false);
-  // the pair the reader is shown BEFORE they approve anything. null
-  // until they ask for one.
-  const [pair, set_pair] = use_state<{
-    public_key: string;
-    secret_key: string;
-  } | null>(null);
+  // the pair the reader is shown BEFORE they approve anything.
+  //
+  // --- WHY IT IS MADE ON PAGE LOAD AND NOT BY A BUTTON: the key is
+  // made in the browser, and it costs nothing to make. so the page
+  // opens with a pair already on screen — the reader reads it, copies
+  // the private key if they want it, fills the boxes, and approves.
+  // a MAKE THE KEY button in front of that is a click that buys
+  // nothing.
+  //
+  // --- WHY IT IS A LAZY INITIAL STATE: the argument to use_state is
+  // only used on the FIRST render, so the key is made exactly once and
+  // a re-render does not throw the reader's key away and make another.
+  const [pair, set_pair] = use_state(() =>
+    SHIT_1170_APP_PAGE_KEYS_ADD.make_pair(),
+  );
   const [error, set_error] = use_state<string | null>(null);
 
   if (account_id === null) {
@@ -109,6 +126,8 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD_FUN() {
   const allowance_human =
     SHIT_1170_APP_PAGE_KEYS_ALLOWANCE.format(allowance_yocto).human;
 
+  // make a fresh pair, right away — the reader sees the new one the
+  // moment they click.
   const make_pair_fun = () => {
     set_pair(SHIT_1170_APP_PAGE_KEYS_ADD.make_pair());
     set_error(null);
@@ -116,10 +135,6 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD_FUN() {
 
   const add_fun = async () => {
     if (adding) return;
-    if (pair === null) {
-      set_error("MAKE THE KEY FIRST");
-      return;
-    }
     if (!receiver_ok) {
       set_error("THE ACCOUNT THE KEY CALLS IS NOT A NEAR ACCOUNT ID");
       return;
@@ -137,7 +152,11 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD_FUN() {
           );
           if (outcome.declined) return null;
           if (outcome.error !== null) return outcome.error;
-          set_pair(null);
+          // --- WHY A FRESH KEY AFTER A SUCCESS: the key that was just
+          // added is ON THE CHAIN now, so showing it again would offer
+          // the reader the same key twice. a fresh one is on screen and
+          // ready for the next key.
+          set_pair(SHIT_1170_APP_PAGE_KEYS_ADD.make_pair());
           set_receiver_id("");
           set_methods("");
           set_allowance("");
@@ -173,8 +192,8 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD_FUN() {
     <div class="keys-add">
       <h3 class="keys-group">ADD A LIMITED KEY</h3>
       <p class="keys-note">
-        A LIMITED KEY CAN ONLY CALL ONE ACCOUNT. THE PRIVATE KEY IS SHOWN HERE
-        AND SAVED IN THIS BROWSER, SO YOU CAN COME BACK FOR IT.
+        A LIMITED KEY CAN ONLY CALL ONE ACCOUNT. THE KEY BELOW IS MADE NOW AND
+        IS SAVED IN THIS BROWSER, SO YOU CAN COME BACK FOR IT.
       </p>
 
       <label class="keys-field">
@@ -246,69 +265,54 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD_FUN() {
         <p class="keys-note is-good">ALLOWANCE: {allowance_human}</p>
       )}
 
-      {pair === null ? (
-        <button
-          type="button"
-          disabled={adding || busy}
-          onClick={() => {
-            make_pair_fun();
-          }}
-        >
-          MAKE THE KEY
-        </button>
-      ) : (
-        <>
-          <div class="keys-preview">
-            <p class="keys-detail">PUBLIC KEY</p>
-            <code class="keys-public-key">{pair.public_key}</code>
-            <p class="keys-detail">PRIVATE KEY</p>
-            <code class="keys-secret-key">{pair.secret_key}</code>
-            <p class="keys-detail">
-              THIS KEY WILL CALL:{" "}
-              {receiver.length === 0 ? "NO ACCOUNT" : receiver}
-              {" — METHODS: "}
-              {method_names.length === 0 ? "ANY" : method_names.join(", ")}
-              {" — ALLOWANCE: "}
-              {allowance_human ?? "NOTHING"}
-            </p>
-            <div class="keys-made-actions">
-              <button
-                type="button"
-                onClick={() => {
-                  void copy_fun(pair.secret_key);
-                }}
-              >
-                COPY THE PRIVATE KEY
-              </button>
-              <button
-                type="button"
-                class="keys-clear"
-                disabled={adding || busy}
-                onClick={() => {
-                  set_pair(null);
-                }}
-              >
-                MAKE ANOTHER
-              </button>
-            </div>
-          </div>
-
+      <div class="keys-preview">
+        <p class="keys-detail">PUBLIC KEY</p>
+        <code class="keys-public-key">{pair.public_key}</code>
+        <p class="keys-detail">PRIVATE KEY</p>
+        <code class="keys-secret-key">{pair.secret_key}</code>
+        <p class="keys-detail">
+          THIS KEY WILL CALL: {receiver.length === 0 ? "NO ACCOUNT" : receiver}
+          {" — METHODS: "}
+          {method_names.length === 0 ? "ANY" : method_names.join(", ")}
+          {" — ALLOWANCE: "}
+          {allowance_human ?? "NOTHING"}
+        </p>
+        <div class="keys-made-actions">
           <button
             type="button"
-            disabled={adding || busy || !receiver_ok}
             onClick={() => {
-              void add_fun();
+              void copy_fun(pair.secret_key);
             }}
-            title={
-              receiver_ok
-                ? "add this key to the account"
-                : "the account the key calls is not an account id"
-            }
           >
-            {adding ? "WORKING…" : "ADD THE KEY"}
+            COPY THE PRIVATE KEY
           </button>
-        </>
-      )}
+          <button
+            type="button"
+            class="keys-clear"
+            disabled={adding || busy}
+            onClick={() => {
+              make_pair_fun();
+            }}
+          >
+            GENERATE ANOTHER KEY
+          </button>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        disabled={adding || busy || !receiver_ok}
+        onClick={() => {
+          void add_fun();
+        }}
+        title={
+          receiver_ok
+            ? "add this key to the account"
+            : "the account the key calls is not an account id"
+        }
+      >
+        {adding ? "WORKING…" : "ADD THE KEY"}
+      </button>
 
       {error !== null && <p class="keys-note is-error">{error}</p>}
     </div>
