@@ -80,6 +80,14 @@ export interface SHIT_1170_KEY_VAULT_ROW {
   method_names: string[];
   // the allowance, in yoctoNEAR. null when the key has none.
   allowance_yocto: string | null;
+  // true when the key is in the QUEUE and not on the chain yet.
+  //
+  // --- WHY --- IT IS A FLAG AND NOT A STATUS: a queued key is waiting
+  // for the reader to approve it in the feed, and the page has to say
+  // "QUEUED" and not "REMOVED" — the key is not gone, it is not HERE
+  // yet. one flag says it, and a row that does not carry it is a key
+  // that was made the ordinary way.
+  queued?: boolean;
   // when the key was made, in milliseconds since the epoch.
   created_at: number;
 }

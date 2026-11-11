@@ -38,7 +38,20 @@
 // status to say, and two accounts sending the same queued transaction
 // produce two different on-chain transactions with two different
 // outcomes.
+//
+// --- WHY --- a queued transaction is EITHER a contract call OR a key
+// action: a call names a contract and a method, and a key action names
+// a public key. they are different things the user approves, so they
+// are different fields, and a transaction that carries both is refused
+// rather than guessed at.
 // ========================================
+
+// the two key actions there are.
+//
+// --- WHY --- it is a named type and not a bare string union in two
+// places: the wire says the same two words on the request and on the
+// response, and one name keeps the two from drifting apart.
+export type SHIT_1170_TX_QUEUE_KEY_ACTION = "add_key" | "delete_key";
 
 // where one account stands with one transaction.
 //
@@ -60,7 +73,7 @@ export interface SHIT_1170_TX_QUEUE_ACCOUNT {
   txHash: string | null;
 }
 
-// one function call in the batch.
+// one queued transaction — a contract call OR a key action.
 export interface SHIT_1170_TX_QUEUE_TRANSACTION {
   // the transaction's id. it is what the sent route quotes back.
   txId: string;
@@ -84,6 +97,24 @@ export interface SHIT_1170_TX_QUEUE_TRANSACTION {
   gas: string | null;
   // the deposit, as a string. it may be nothing.
   deposit: string | null;
+  // the KEY ACTION — `add_key` or `delete_key`. it is null for an
+  // ordinary contract call.
+  //
+  // --- WHY --- IT IS ALWAYS PRESENT AND NOT OPTIONAL: it comes from the
+  // backend, and the backend always sends it. a reader can tell a key
+  // action from a contract call without guessing.
+  keyAction: SHIT_1170_TX_QUEUE_KEY_ACTION | null;
+  // the public key the key action names. it is null for a contract call.
+  keyPublicKey: string | null;
+  // the contract the new key may call. it is null for a contract call
+  // and for a `delete_key`.
+  keyReceiverId: string | null;
+  // the methods the new key may call. it is null for a contract call
+  // and for a `delete_key`.
+  keyMethodNames: string[] | null;
+  // the yoctoNEAR ceiling on the new key. it is null for a contract
+  // call and for a `delete_key`.
+  keyAllowance: string | null;
   // the accounts on THIS transaction.
   accounts: SHIT_1170_TX_QUEUE_ACCOUNT[];
 }
@@ -128,15 +159,20 @@ export interface SHIT_1170_TX_QUEUE_LIST {
 }
 
 // --- REQUEST ----------------------------
-// one function call in the batch, as the agent writes it.
+// one queued transaction, as the agent writes it. it is a contract call
+// or a key action, and the `keyAction` field says which.
 //
 // --- WHY --- the ids are absent here: the backend mints them. the
 // agent names a contract and a method, and the backend answers with the
 // tx ids it wrote.
 export interface SHIT_1170_TX_QUEUE_TRANSACTION_REQUEST {
   // the contract being called.
+  //
+  // --- WHY --- IT IS EMPTY FOR A KEY ACTION: a key action has no
+  // contract to call, and a transaction that names one is refused with
+  // `key_action_and_contract_call`.
   contractId: string;
-  // the method name.
+  // the method name. it is empty for a key action, for the same reason.
   method: string;
   // the arguments, as a json object.
   args?: Record<string, unknown>;
@@ -150,6 +186,27 @@ export interface SHIT_1170_TX_QUEUE_TRANSACTION_REQUEST {
   gas?: string;
   // the deposit, as a string.
   deposit?: string;
+  // the KEY ACTION — `add_key` or `delete_key`. it may be left out, and
+  // then the transaction is an ordinary contract call.
+  //
+  // --- WHY --- IT IS OPTIONAL HERE AND NOT NULLABLE: the agent writes
+  // the request, and most calls are contract calls. the field says what
+  // kind of transaction this is, and the answer to "what kind" is the
+  // field being absent.
+  keyAction?: SHIT_1170_TX_QUEUE_KEY_ACTION;
+  // the public key the key action names.
+  keyPublicKey?: string;
+  // the contract the new key may call. it is only there for `add_key`.
+  keyReceiverId?: string;
+  // the methods the new key may call. it is only there for `add_key`.
+  keyMethodNames?: string[];
+  // the yoctoNEAR ceiling on the new key. it is only there for
+  // `add_key`.
+  //
+  // --- WHY --- IT IS A STRING AND NOT A NUMBER: it is yoctoNEAR, and a
+  // yoctoNEAR amount does not fit a json number safely when it is big.
+  // every other amount in this api is a string for the same reason.
+  keyAllowance?: string;
 }
 
 // the queue body: a batch of transactions and the WHO it is for.

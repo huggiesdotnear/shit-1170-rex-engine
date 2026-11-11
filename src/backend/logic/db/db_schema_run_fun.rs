@@ -108,6 +108,16 @@ pub async fn db_schema_run_fun(connection: &mut SqliteConnection) -> Result<(), 
     // and the add is checked so it never runs twice.
     crate::backend::logic::db::db_table_tx_queue_transactions_fun::db_table_tx_queue_transactions_add_args_base64_fun(connection).await?;
 
+    // --- WHY --- THE KEY COLUMNS ARE ADDED HERE AND NOT IN THE TABLE
+    // FILE'S OWN CREATE: the runner is the one that knows what a db
+    // that already exists needs, and it is the one that runs on every
+    // start.
+    crate::backend::logic::db::db_table_tx_queue_transactions_fun::db_table_tx_queue_transactions_add_key_action_fun(connection).await?;
+    crate::backend::logic::db::db_table_tx_queue_transactions_fun::db_table_tx_queue_transactions_add_key_public_key_fun(connection).await?;
+    crate::backend::logic::db::db_table_tx_queue_transactions_fun::db_table_tx_queue_transactions_add_key_receiver_id_fun(connection).await?;
+    crate::backend::logic::db::db_table_tx_queue_transactions_fun::db_table_tx_queue_transactions_add_key_method_names_fun(connection).await?;
+    crate::backend::logic::db::db_table_tx_queue_transactions_fun::db_table_tx_queue_transactions_add_key_allowance_fun(connection).await?;
+
     Ok(())
 }
 // ========================================

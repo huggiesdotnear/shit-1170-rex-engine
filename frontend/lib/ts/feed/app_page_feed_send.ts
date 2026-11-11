@@ -31,6 +31,13 @@
 // `executor` instead, which posts the params straight to the wallet
 // with no conversion. the shape of that route lives in
 // shared/queue_args_wallet_action.ts.
+//
+// --- WHY A KEY ACTION IS ITS OWN THING HERE: the queue carries two
+// kinds of transaction, and a key action is an AddKey or a DeleteKey on
+// the ACCOUNT ITSELF — not a call on a contract. it is built by hand
+// from the same builders the keys page uses, because near-kit's own
+// AddKey hands the wallet the BORSH permission and the wallet shows NO
+// PREVIEW for it. the shape lives in shared/queue_key_action.ts.
 import { near_connect_client } from "@near-kit-tool-box/web";
 import {
   api_shit_1170_tx_queue_sent_post,
@@ -47,6 +54,10 @@ import {
   shit_1170_wallet_native_transaction_fun,
   shit_1170_wallet_transaction_fun,
 } from "../shared/queue_args_wallet_action";
+import {
+  shit_1170_queue_is_key_action_fun,
+  shit_1170_queue_key_action_wallet_fun,
+} from "../shared/queue_key_action";
 import { SHIT_1170_TOAST_STORE } from "../shared/toast_store";
 // ========================================
 // ========================================
@@ -137,16 +148,49 @@ export async function shit_1170_queue_send_fun(
     // always fails, the file never appears at its url, and nothing says
     // why. refusing here tells the reader the truth instead of sending a
     // call that cannot work.
+    // --- WHY --- THE TWO KINDS ARE ASKED FOR APART: a key action is an
+    // AddKey or a DeleteKey — not a call — and the bytes route turns
+    // every action into a NATIVE FunctionCall. a key action on that
+    // route would go out as a call to nothing. so the app knows which
+    // kinds are in the batch before it picks the route.
+    const has_key_action = transactions.some(shit_1170_queue_is_key_action_fun);
     const has_bytes_call = shit_1170_batch_has_bytes_fun(transactions);
-    if (
-      has_bytes_call &&
-      !shit_1170_wallet_can_carry_bytes_fun(manifest)
-    ) {
+    // --- WHY --- A BATCH WITH BOTH IS REFUSED AND NOT SENT: the bytes
+    // route turns every action into a native call, and the wallet's own
+    // route writes the bytes out as json text — which the indexer drops
+    // SILENTLY. so one route loses the file and the other loses the key
+    // action. a batch that cannot go out whole is not sent at all.
+    if (has_bytes_call && has_key_action) {
+      const message =
+        "THIS BATCH HAS A FILE AND A KEY ACTION IN IT, AND THE WALLET CANNOT " +
+        "SEND BOTH AT ONCE. THE FILE WOULD BE DROPPED SILENTLY, SO NOTHING " +
+        "WAS SENT. APPROVE THE FILE AND THE KEY SEPARATELY.";
+      SHIT_1170_TOAST_STORE.show(
+        "error",
+        "THIS BATCH CANNOT BE SENT",
+        message,
+        null,
+      );
+      return {
+        sent: false,
+        succeeded: 0,
+        failed: 0,
+        tx_hash: null,
+        error: message,
+        declined: false,
+      };
+    }
+    if (has_bytes_call && !shit_1170_wallet_can_carry_bytes_fun(manifest)) {
       const message =
         "THIS WALLET CANNOT SEND RAW BYTES, AND THIS CALL CARRIES A FILE. " +
         "THE UPLOAD WOULD BE DROPPED SILENTLY AND THE FILE WOULD NEVER APPEAR. " +
         "SIGN IN WITH THE INTEAR WALLET TO UPLOAD A FILE.";
-      SHIT_1170_TOAST_STORE.show("error", "THIS WALLET CANNOT DO THIS", message, null);
+      SHIT_1170_TOAST_STORE.show(
+        "error",
+        "THIS WALLET CANNOT DO THIS",
+        message,
+        null,
+      );
       return {
         sent: false,
         succeeded: 0,
@@ -171,7 +215,12 @@ export async function shit_1170_queue_send_fun(
         const message =
           "THIS WALLET HAS NO WAY TO SEND RAW BYTES. " +
           "THE UPLOAD WOULD BE DROPPED SILENTLY AND THE FILE WOULD NEVER APPEAR.";
-        SHIT_1170_TOAST_STORE.show("error", "THIS WALLET CANNOT DO THIS", message, null);
+        SHIT_1170_TOAST_STORE.show(
+          "error",
+          "THIS WALLET CANNOT DO THIS",
+          message,
+          null,
+        );
         return {
           sent: false,
           succeeded: 0,
@@ -190,10 +239,23 @@ export async function shit_1170_queue_send_fun(
         })),
       })) as ReadonlyArray<unknown>;
     } else {
+      // --- WHY --- EVERY TRANSACTION BECOMES ONE WALLET TRANSACTION: the
+      // outcomes are matched back by position, so one queued transaction
+      // must produce exactly one wallet transaction and exactly one
+      // outcome. a batch that mixes calls and key actions keeps that
+      // one-for-one rule, and the order of the list is the order of the
+      // positions.
+      //
+      // --- WHY --- THE KEY ACTION IS HAND-BUILT: near-kit hands the
+      // wallet the BORSH permission and the wallet shows NO PREVIEW for
+      // it. the hand-built action is the connector's own shape, and it
+      // says what the key is for.
       outcomes = await wallet.signAndSendTransactions({
         signerId: account_id,
         transactions: transactions.map((transaction) => ({
-          ...shit_1170_wallet_transaction_fun(transaction),
+          ...(shit_1170_queue_is_key_action_fun(transaction)
+            ? shit_1170_queue_key_action_wallet_fun(transaction, account_id)
+            : shit_1170_wallet_transaction_fun(transaction)),
           signerId: account_id,
         })),
       });

@@ -14,12 +14,17 @@ tx_queue,updated_at,INTEGER,no,,when the batch was last touched in ms since the 
 tx_queue_transactions,tx_id,TEXT,no,,"the uuid v4 that names one transaction inside the batch. it is the PRIMARY KEY. a uuid and not queue_id + position, because the position is renumbered when a call is removed from the middle"
 tx_queue_transactions,queue_id,TEXT,no,,the batch this transaction belongs to. a FOREIGN KEY to tx_queue(queue_id) ON DELETE CASCADE
 tx_queue_transactions,position,INTEGER,no,,the order of this transaction inside the batch from zero. it is what the wallet popup needs
-tx_queue_transactions,contract_id,TEXT,no,,the contract being called. it has its own column so the stats query is a GROUP BY and not a json scan
-tx_queue_transactions,method,TEXT,no,,the method name. it has its own column for the same reason as contract_id
+tx_queue_transactions,contract_id,TEXT,no,,the contract being called. it has its own column so the stats query is a GROUP BY and not a json scan. EMPTY STRING for a key action — the column is NOT NULL and nulling it would need a table rebuild, so the empty string means ""this is not a contract call""
+tx_queue_transactions,method,TEXT,no,,the method name. it has its own column for the same reason as contract_id. EMPTY STRING for a key action, for the same reason as contract_id
 tx_queue_transactions,args,TEXT,no,,"the arguments as a compact json object held as a string. it stays a json column because it is a bag of arbitrary keys with no shape"
 tx_queue_transactions,args_base64,TEXT,yes,,"the arguments as raw bytes, base64 encoded. null for a call with json arguments. it has its own column because the two carry different things — the FastFS protocol's borsh bytes have no names to be json keys"
 tx_queue_transactions,gas,TEXT,yes,,the gas as a string. null when the call has no gas of its own
 tx_queue_transactions,deposit,TEXT,yes,,the deposit as a string. null when the call has no deposit of its own
+tx_queue_transactions,key_action,TEXT,yes,,"the KEY ACTION — add_key or delete_key. null for an ordinary contract call. it is the column that says WHICH KIND of row this is"
+tx_queue_transactions,key_public_key,TEXT,yes,,the public key the key action names. null for a contract call
+tx_queue_transactions,key_receiver_id,TEXT,yes,,"the contract the NEW key may call. null for a contract call and for a delete_key — removing a key does not say what it may call, the chain knows that"
+tx_queue_transactions,key_method_names,TEXT,yes,,"the methods the NEW key may call, as a json array string. null for a contract call and for a delete_key"
+tx_queue_transactions,key_allowance,TEXT,yes,,"the yoctoNEAR ceiling on the NEW key, as a string. null for a contract call and for a delete_key"
 tx_queue_transactions,created_at,INTEGER,no,,when the transaction was queued in ms since the epoch
 tx_queue_transactions,updated_at,INTEGER,no,,when the transaction was last touched in ms since the epoch
 tx_queue_accounts,queue_id,TEXT,no,,"the batch the transaction belongs to. it is kept as a column even though it is not part of the primary key, so ""every account on this queue"" is one indexed read"

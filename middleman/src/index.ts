@@ -49,6 +49,9 @@ export type {
 export { build_headers } from "./stuff/request_options";
 export type { REQUEST_OPTIONS } from "./stuff/request_options";
 export { parse_feed_ws_event } from "./stuff/parse_feed_ws_event";
+export { tx_queue_key_action_check_fun } from "./stuff/tx_queue_key_action_check_fun";
+export { tx_queue_transaction_valid_fun } from "./stuff/tx_queue_transaction_valid_fun";
+export { tx_queue_valid_fun } from "./stuff/tx_queue_valid_fun";
 
 // ---------- the tool primitives ---------
 // the argument parsing and the JSON printing every bin uses. they live
@@ -103,6 +106,7 @@ export type {
   SHIT_1170_TX_QUEUE_CONTRACT_STAT,
   SHIT_1170_TX_QUEUE_CONTRACT_STATS,
   SHIT_1170_TX_QUEUE_HASH_REQUEST,
+  SHIT_1170_TX_QUEUE_KEY_ACTION,
   SHIT_1170_TX_QUEUE_LIST,
   SHIT_1170_TX_QUEUE_METHOD_STAT,
   SHIT_1170_TX_QUEUE_METHOD_STATS,

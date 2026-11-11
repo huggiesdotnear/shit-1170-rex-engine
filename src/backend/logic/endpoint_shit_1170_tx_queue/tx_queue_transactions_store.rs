@@ -3,11 +3,18 @@
 // the db access for the tx_queue_transactions table: one row per
 // transaction inside a queued batch.
 //
-// --- WHY --- only FUNCTION CALLS are queued: no transfers, no key
-// management, no account creation. each row carries the near-kit toolbox
-// `generic_contract_call_fun` shape — contract id, method, args, gas,
-// deposit — so the frontend can hand the transactions straight to
-// `generic_contract_call_wallet` without reshaping them.
+// --- WHY --- a row is EITHER a FUNCTION CALL OR a KEY ACTION: no
+// transfers, no account creation. a function call carries the near-kit
+// toolbox `generic_contract_call_fun` shape — contract id, method, args,
+// gas, deposit — so the frontend can hand the transactions straight to
+// `generic_contract_call_wallet` without reshaping them. a KEY ACTION
+// carries the access key it adds or removes, in the five `key_*`
+// columns.
+//
+// --- WHY --- A KEY ACTION WRITES EMPTY STRINGS FOR `contract_id` AND
+// `method`: the two columns are `NOT NULL` and making them nullable
+// would need a table rebuild. the empty string means "this is not a
+// contract call", and the `key_action` column is what says which it is.
 //
 // --- WHY --- `contract_id`, `method` and `args` have their OWN columns
 // and not one json blob: the plan is to later show "the most common
@@ -59,6 +66,26 @@ pub struct TX_QUEUE_TRANSACTION_ROW {
     pub gas: Option<String>,
     // the deposit, as a string. it may be nothing.
     pub deposit: Option<String>,
+    // the KEY ACTION — `add_key` or `delete_key`. it is null for an
+    // ordinary contract call.
+    //
+    // --- WHY --- IT IS THE COLUMN THAT SAYS WHICH KIND OF ROW THIS IS:
+    // a key action row has an empty `contract_id` and an empty
+    // `method`, and the empty strings mean "not a contract call". this
+    // column is what says what it is instead.
+    pub key_action: Option<String>,
+    // the public key the key action names. it is null for a contract
+    // call.
+    pub key_public_key: Option<String>,
+    // the contract the new key may call. it is null for a contract call
+    // and for a `delete_key`.
+    pub key_receiver_id: Option<String>,
+    // the methods the new key may call, as a json array string. it is
+    // null for a contract call and for a `delete_key`.
+    pub key_method_names: Option<String>,
+    // the yoctoNEAR ceiling on the new key. it is null for a contract
+    // call and for a `delete_key`.
+    pub key_allowance: Option<String>,
     // when the transaction was queued, in ms since the epoch.
     pub created_at: i64,
     // when the transaction was last touched, in ms since the epoch.
@@ -72,7 +99,7 @@ pub struct TX_QUEUE_TRANSACTION_ROW {
 // column is text, and the json <-> column conversion lives in
 // `tx_queue_args_fun` so the two directions can never disagree.
 //
-// --- WHY --- there are TEN arguments and not a struct: every one of
+// --- WHY --- there are FIFTEEN arguments and not a struct: every one of
 // them is a COLUMN of the row, and a struct would only move the columns
 // into a struct and give the caller another thing to fill in. the
 // columns are the shape.
@@ -88,13 +115,20 @@ pub async fn tx_queue_transactions_insert_fun(
     args_base64: Option<&str>,
     gas: Option<&str>,
     deposit: Option<&str>,
+    key_action: Option<&str>,
+    key_public_key: Option<&str>,
+    key_receiver_id: Option<&str>,
+    key_method_names: Option<&str>,
+    key_allowance: Option<&str>,
 ) -> Result<(), sqlx::Error> {
     let now = now_ms_fun();
 
     sqlx::query(
         "INSERT INTO tx_queue_transactions
-        (tx_id, queue_id, position, contract_id, method, args, args_base64, gas, deposit, created_at, updated_at)
-       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?10)",
+        (tx_id, queue_id, position, contract_id, method, args, args_base64, gas, deposit,
+         key_action, key_public_key, key_receiver_id, key_method_names, key_allowance,
+         created_at, updated_at)
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?15)",
     )
     .bind(tx_id)
     .bind(queue_id)
@@ -105,6 +139,11 @@ pub async fn tx_queue_transactions_insert_fun(
     .bind(args_base64)
     .bind(gas)
     .bind(deposit)
+    .bind(key_action)
+    .bind(key_public_key)
+    .bind(key_receiver_id)
+    .bind(key_method_names)
+    .bind(key_allowance)
     .bind(now)
     .execute(pool)
     .await?;
@@ -124,7 +163,9 @@ pub async fn tx_queue_transactions_list_by_queue_fun(
     queue_id: &str,
 ) -> Result<Vec<TX_QUEUE_TRANSACTION_ROW>, sqlx::Error> {
     let rows = sqlx::query(
-        "SELECT tx_id, queue_id, position, contract_id, method, args, args_base64, gas, deposit, created_at, updated_at
+        "SELECT tx_id, queue_id, position, contract_id, method, args, args_base64, gas, deposit,
+                key_action, key_public_key, key_receiver_id, key_method_names, key_allowance,
+                created_at, updated_at
        FROM tx_queue_transactions
       WHERE queue_id = ?1
       ORDER BY position ASC",
@@ -144,7 +185,9 @@ pub async fn tx_queue_transactions_get_fun(
     tx_id: &str,
 ) -> Result<Option<TX_QUEUE_TRANSACTION_ROW>, sqlx::Error> {
     let row = sqlx::query(
-        "SELECT tx_id, queue_id, position, contract_id, method, args, args_base64, gas, deposit, created_at, updated_at
+        "SELECT tx_id, queue_id, position, contract_id, method, args, args_base64, gas, deposit,
+                key_action, key_public_key, key_receiver_id, key_method_names, key_allowance,
+                created_at, updated_at
        FROM tx_queue_transactions
       WHERE tx_id = ?1",
     )
@@ -173,6 +216,11 @@ pub fn row_to_tx_queue_transaction_fun(row: &sqlx::sqlite::SqliteRow) -> TX_QUEU
         args_base64: row.get("args_base64"),
         gas: row.get("gas"),
         deposit: row.get("deposit"),
+        key_action: row.get("key_action"),
+        key_public_key: row.get("key_public_key"),
+        key_receiver_id: row.get("key_receiver_id"),
+        key_method_names: row.get("key_method_names"),
+        key_allowance: row.get("key_allowance"),
         created_at: row.get("created_at"),
         updated_at: row.get("updated_at"),
     }

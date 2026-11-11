@@ -46,6 +46,10 @@ import {
 import { shit_1170_queue_first_transfer_fun } from "../../ts/shared/queue_transfers";
 import { shit_1170_queue_args_display_fun } from "../../ts/shared/queue_args_display";
 import { shit_1170_code_block_fun } from "../tx/code_block";
+import {
+  shit_1170_queue_is_key_action_fun,
+  shit_1170_queue_key_action_line_fun,
+} from "../../ts/shared/queue_key_action";
 import type { SHIT_1170_TRANSFER_TOKEN } from "../../ts/shared/transfer_tokens";
 import type { SHIT_1170_TX_QUEUE } from "@huggies/shit-1170-rex-engine-middleman";
 // ========================================
@@ -87,15 +91,30 @@ export function SHIT_1170_COMPONENT_APP_PAGE_FEED_TRANSACTIONS_FUN(props: {
   if (first === undefined) return null;
   const transfer = shit_1170_queue_first_transfer_fun(props.queue);
   const args_display = shit_1170_queue_args_display_fun(first);
-  const args_json = args_display.binary ? null : args_json_fun(first.args ?? {});
+  const args_json = args_display.binary
+    ? null
+    : args_json_fun(first.args ?? {});
+  // --- WHY --- A KEY ACTION GETS ITS OWN LINE: a key action is not a
+  // call — it changes the READER'S KEYS — and the contract line would
+  // show an empty contract and an empty method. the reader has to see
+  // WHAT will happen to their keys before they approve it.
+  const is_key_action = shit_1170_queue_is_key_action_fun(first);
 
   return (
     <div class="feed-call">
       {/* --- WHY --- THE CONTRACT AND THE METHOD ARE THE SAME FOR EVERY
           CALL: the post reads the same whatever it moves. */}
       <div class="feed-call-line">
-        <code>{first.contractId}</code>
-        <span class="feed-call-method">{first.method}</span>
+        {is_key_action ? (
+          <span class="feed-call-key">
+            {shit_1170_queue_key_action_line_fun(first)}
+          </span>
+        ) : (
+          <>
+            <code>{first.contractId}</code>
+            <span class="feed-call-method">{first.method}</span>
+          </>
+        )}
         {/* --- WHY --- THE COUNT IS SHOWN ONLY FOR A BATCH: one call needs
             no count. a batch of three says so, so the reader knows the
             post is showing one of three. */}
@@ -109,40 +128,44 @@ export function SHIT_1170_COMPONENT_APP_PAGE_FEED_TRANSACTIONS_FUN(props: {
           the same box every other piece of json in the app sits in, so
           a queued call's args and a finished transaction's args look
           the same. */}
-      {args_json !== null && shit_1170_code_block_fun({ code: args_json })}
+      {!is_key_action &&
+        args_json !== null &&
+        shit_1170_code_block_fun({ code: args_json })}
       {/* --- WHY --- A CALL WITH BYTES SHOWS THE FILE'S FACTS AND THE HEX:
           the reader is about to approve an upload, and "notes/small.txt,
           text/plain, 13 bytes" is what that approval means. the hex is
           there so the reader can see the payload itself. */}
-      {args_display.binary && args_display.byte_length > 0 && (
-        <div class="feed-call-bytes">
-          {args_display.fastfs_path !== "" && (
-            <div class="feed-call-bytes-line">
-              <span class="feed-call-bytes-path">
-                {args_display.fastfs_path}
-              </span>
-              {args_display.fastfs_mime !== "" && (
-                <span class="feed-call-bytes-mime">
-                  {args_display.fastfs_mime}
+      {!is_key_action &&
+        args_display.binary &&
+        args_display.byte_length > 0 && (
+          <div class="feed-call-bytes">
+            {args_display.fastfs_path !== "" && (
+              <div class="feed-call-bytes-line">
+                <span class="feed-call-bytes-path">
+                  {args_display.fastfs_path}
                 </span>
-              )}
-              <span class="feed-call-bytes-size">
-                {args_display.byte_length} BYTES
-              </span>
+                {args_display.fastfs_mime !== "" && (
+                  <span class="feed-call-bytes-mime">
+                    {args_display.fastfs_mime}
+                  </span>
+                )}
+                <span class="feed-call-bytes-size">
+                  {args_display.byte_length} BYTES
+                </span>
+              </div>
+            )}
+            {args_display.fastfs_path === "" && (
+              <div class="feed-call-bytes-line">
+                <span class="feed-call-bytes-size">
+                  {args_display.byte_length} BYTES
+                </span>
+              </div>
+            )}
+            <div class="feed-call-bytes-hex">
+              {shit_1170_code_block_fun({ code: args_display.hex })}
             </div>
-          )}
-          {args_display.fastfs_path === "" && (
-            <div class="feed-call-bytes-line">
-              <span class="feed-call-bytes-size">
-                {args_display.byte_length} BYTES
-              </span>
-            </div>
-          )}
-          <div class="feed-call-bytes-hex">
-            {shit_1170_code_block_fun({ code: args_display.hex })}
           </div>
-        </div>
-      )}
+        )}
       {/* --- WHY --- THE TOKEN LINE IS ONLY DRAWN FOR A CALL THAT MOVES
           ONE: there is nothing to say about the tokens of a call that
           moves none. */}

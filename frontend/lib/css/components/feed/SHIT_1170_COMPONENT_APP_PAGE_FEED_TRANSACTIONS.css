@@ -19,6 +19,17 @@
   width: 100%;
 }
 /*==================================*/
+/* a KEY ACTION: the line says what will happen to the reader's keys.
+   --- WHY IT IS ITS OWN CLASS AND NOT THE CONTRACT'S: a key action is
+   not a call — it names a public key and changes the account's own
+   keys — and it must not be read as a contract and a method. */
+#SHIT_1170_COMPONENT_APP_PAGE_FEED_POST .feed-call-key {
+  font-family: monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  overflow-wrap: anywhere;
+}
+/*==================================*/
 /* the contract and the method, on one line. */
 #SHIT_1170_COMPONENT_APP_PAGE_FEED_POST .feed-call-line {
   display: flex;

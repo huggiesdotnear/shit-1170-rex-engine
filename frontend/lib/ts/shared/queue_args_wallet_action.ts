@@ -165,9 +165,20 @@ export function shit_1170_wallet_id_fun(manifest: unknown): string {
 // --- WHY --- THE BYTES ARE DECIDED BY THE PAYLOAD AND NOT BY THE
 // CONTRACT: a contract can be called either way. what says whether the
 // arguments are bytes is which field of the queue holds them.
+//
+// --- WHY --- A KEY ACTION IS NEVER A BYTE CALL: a key action has no
+// arguments at all — it names a public key — and the bytes route turns
+// every action into a native FunctionCall. a key action on that route
+// would be turned into a call that does not exist.
 export function shit_1170_transaction_has_bytes_fun(
   transaction: SHIT_1170_TX_QUEUE_TRANSACTION,
 ): boolean {
+  if (
+    transaction.keyAction !== null &&
+    transaction.keyAction !== undefined
+  ) {
+    return false;
+  }
   return (
     transaction.argsBase64 !== null && transaction.argsBase64 !== undefined
   );

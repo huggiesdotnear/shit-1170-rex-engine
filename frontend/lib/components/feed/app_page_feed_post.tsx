@@ -51,6 +51,10 @@ import {
   shit_1170_feed_send_fun,
 } from "../../ts/feed/app_page_feed_actions";
 import { SHIT_1170_COMPONENT_APP_PAGE_FEED_TRANSACTIONS_FUN } from "./app_page_feed_transactions";
+import {
+  shit_1170_queue_is_key_action_fun,
+  shit_1170_queue_key_action_line_fun,
+} from "../../ts/shared/queue_key_action";
 import { SHIT_1170_COMPONENT_APP_PAGE_FEED_SWAP_POST_FUN } from "./app_page_feed_swap_post";
 import { use_feed_scroll_load_fun } from "../../ts/feed/app_page_feed_scroll_load";
 import { tx_detail_href_fun } from "../../ts/shared/tx_link";
@@ -72,6 +76,12 @@ function headline_fun(queue: SHIT_1170_TX_QUEUE): string {
   }
   const first = queue.transactions[0];
   if (first === undefined) return "A QUEUED BATCH";
+  // --- WHY --- A KEY ACTION SAYS WHAT IT DOES AND NOT ITS METHOD: a key
+  // action has no method — it names a public key — so the fallback would
+  // be an empty headline, and a card with no headline says nothing.
+  if (shit_1170_queue_is_key_action_fun(first)) {
+    return shit_1170_queue_key_action_line_fun(first);
+  }
   return first.method;
 }
 

@@ -1659,3 +1659,186 @@ async fn the_fastfs_skills_own_payload_is_queued() {
     assert_eq!(transactions[0]["gas"], "1");
     assert_eq!(transactions[0]["deposit"], "0");
 }
+
+// --- WHY --- THE KEY ACTIONS ---
+// the queue carries two kinds of thing: a contract call and a KEY
+// ACTION. these tests are about the second one.
+//
+// --- WHY --- THE `add_key` TESTS NEED NO CHAIN: an add names a key
+// that does not exist yet, so there is nothing on chain to check. the
+// delete DOES need the chain, and the chain is stubbed out here by
+// pointing the rpc url at a server that answers nothing — the point is
+// that the queue refuses the delete rather than writing it.
+fn add_key_body_fun() -> Value {
+    json!({
+        "what": "give you a limited key",
+        "transactions": [ {
+            "keyAction": "add_key",
+            "keyPublicKey": "ed25519:FrtUfbY74kXpBiWmqeQMtn7jKCX3zJhmwyg32ZqANj3c",
+            "keyReceiverId": "ref.finance.near",
+            "keyMethodNames": [ "ft_swap" ],
+            "keyAllowance": "1000000000000000000000000"
+        } ]
+    })
+}
+
+#[tokio::test]
+async fn an_add_key_is_queued_and_comes_back_with_the_key_fields() {
+    let db = TEMP_DB::new_fun("add-key");
+    let pool = db.pool_fun().await;
+    let alice_key = put_api_key_fun(&pool, "alice.near").await;
+    let base_url = serve_fun(pool).await;
+
+    let answer = post_queue_fun(&base_url, Some(&alice_key), &add_key_body_fun()).await;
+
+    assert_eq!(answer.status, 201, "body was: {}", answer.body);
+
+    let transaction = &answer.body["transactions"][0];
+    assert_eq!(transaction["keyAction"], "add_key");
+    assert_eq!(
+        transaction["keyPublicKey"],
+        "ed25519:FrtUfbY74kXpBiWmqeQMtn7jKCX3zJhmwyg32ZqANj3c"
+    );
+    assert_eq!(transaction["keyReceiverId"], "ref.finance.near");
+    assert_eq!(transaction["keyMethodNames"][0], "ft_swap");
+    assert_eq!(transaction["keyAllowance"], "1000000000000000000000000");
+
+    // --- WHY --- THE CONTRACT FIELDS ARE EMPTY AND NOT MISSING: the
+    // columns are NOT NULL and cannot be nulled without a table
+    // rebuild, so a key action writes the empty string and the
+    // `keyAction` is what says what the transaction is.
+    assert_eq!(transaction["contractId"], "");
+    assert_eq!(transaction["method"], "");
+}
+
+#[tokio::test]
+async fn a_contract_call_carries_the_key_fields_as_null() {
+    // --- WHY --- THE KEY FIELDS ARE ALWAYS ON THE WIRE: a client reads
+    // one shape for every transaction, and a field that is sometimes
+    // missing is a field every client has to check for.
+    let db = TEMP_DB::new_fun("call-key-null");
+    let pool = db.pool_fun().await;
+    let alice_key = put_api_key_fun(&pool, "alice.near").await;
+    let base_url = serve_fun(pool).await;
+
+    let answer = post_queue_fun(&base_url, Some(&alice_key), &one_tx_body_fun()).await;
+    assert_eq!(answer.status, 201, "body was: {}", answer.body);
+
+    let transaction = &answer.body["transactions"][0];
+    assert!(transaction["keyAction"].is_null());
+    assert!(transaction["keyPublicKey"].is_null());
+    assert!(transaction["keyReceiverId"].is_null());
+    assert!(transaction["keyMethodNames"].is_null());
+    assert!(transaction["keyAllowance"].is_null());
+}
+
+#[tokio::test]
+async fn a_key_action_that_is_also_a_contract_call_is_refused() {
+    let db = TEMP_DB::new_fun("key-and-call");
+    let pool = db.pool_fun().await;
+    let alice_key = put_api_key_fun(&pool, "alice.near").await;
+    let base_url = serve_fun(pool).await;
+
+    let body = json!({
+        "transactions": [ {
+            "keyAction": "add_key",
+            "keyPublicKey": "ed25519:FrtUfbY74kXpBiWmqeQMtn7jKCX3zJhmwyg32ZqANj3c",
+            "keyReceiverId": "ref.finance.near",
+            "contractId": "ref.finance.near",
+            "method": "ft_swap"
+        } ]
+    });
+
+    let answer = post_queue_fun(&base_url, Some(&alice_key), &body).await;
+
+    assert_eq!(answer.status, 400, "body was: {}", answer.body);
+    assert_eq!(answer.body["error"]["code"], "key_action_and_contract_call");
+}
+
+#[tokio::test]
+async fn a_key_action_with_no_public_key_is_refused() {
+    let db = TEMP_DB::new_fun("key-no-public-key");
+    let pool = db.pool_fun().await;
+    let alice_key = put_api_key_fun(&pool, "alice.near").await;
+    let base_url = serve_fun(pool).await;
+
+    let body = json!({
+        "transactions": [ {
+            "keyAction": "delete_key"
+        } ]
+    });
+
+    let answer = post_queue_fun(&base_url, Some(&alice_key), &body).await;
+
+    assert_eq!(answer.status, 400, "body was: {}", answer.body);
+    assert_eq!(answer.body["error"]["code"], "no_key_public_key");
+}
+
+#[tokio::test]
+async fn an_add_key_with_no_receiver_is_refused() {
+    let db = TEMP_DB::new_fun("key-no-receiver");
+    let pool = db.pool_fun().await;
+    let alice_key = put_api_key_fun(&pool, "alice.near").await;
+    let base_url = serve_fun(pool).await;
+
+    let body = json!({
+        "transactions": [ {
+            "keyAction": "add_key",
+            "keyPublicKey": "ed25519:FrtUfbY74kXpBiWmqeQMtn7jKCX3zJhmwyg32ZqANj3c"
+        } ]
+    });
+
+    let answer = post_queue_fun(&base_url, Some(&alice_key), &body).await;
+
+    assert_eq!(answer.status, 400, "body was: {}", answer.body);
+    assert_eq!(answer.body["error"]["code"], "no_key_receiver_id");
+}
+
+#[tokio::test]
+async fn a_key_action_that_is_neither_add_nor_delete_is_refused() {
+    let db = TEMP_DB::new_fun("key-bad-action");
+    let pool = db.pool_fun().await;
+    let alice_key = put_api_key_fun(&pool, "alice.near").await;
+    let base_url = serve_fun(pool).await;
+
+    let body = json!({
+        "transactions": [ {
+            "keyAction": "burn_the_keys",
+            "keyPublicKey": "ed25519:FrtUfbY74kXpBiWmqeQMtn7jKCX3zJhmwyg32ZqANj3c"
+        } ]
+    });
+
+    let answer = post_queue_fun(&base_url, Some(&alice_key), &body).await;
+
+    assert_eq!(answer.status, 400, "body was: {}", answer.body);
+    assert_eq!(answer.body["error"]["code"], "bad_key_action");
+}
+
+#[tokio::test]
+async fn a_delete_key_with_a_public_key_that_is_not_a_key_is_refused() {
+    // --- WHY --- THIS TEST NEVER TOUCHES THE CHAIN: the public key is
+    // parsed BEFORE the chain is asked, and a string that is not a NEAR
+    // public key is refused right there. that is the right order — a
+    // request that cannot be true is refused without a round trip.
+    let db = TEMP_DB::new_fun("delete-key-bad-key");
+    let pool = db.pool_fun().await;
+    let alice_key = put_api_key_fun(&pool, "alice.near").await;
+    let base_url = serve_fun(pool).await;
+
+    let body = json!({
+        "transactions": [ {
+            "keyAction": "delete_key",
+            "keyPublicKey": "not-a-public-key"
+        } ]
+    });
+
+    let answer = post_queue_fun(&base_url, Some(&alice_key), &body).await;
+
+    assert_eq!(answer.status, 400, "body was: {}", answer.body);
+    assert_eq!(answer.body["error"]["code"], "bad_key_public_key");
+
+    // --- WHY --- NOTHING WAS WRITTEN: the check runs before the write,
+    // so a refused batch leaves no queue behind.
+    let list = get_list_fun(&base_url, Some(&alice_key), "").await;
+    assert_eq!(list.body["total"], 0, "the refused batch left nothing");
+}

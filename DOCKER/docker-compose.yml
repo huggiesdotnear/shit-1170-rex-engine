@@ -52,6 +52,10 @@ services:
       SHIT_1170_HOST: "0.0.0.0"
       SHIT_1170_PORT: "54733"
       RUST_LOG: "shit_1170=info"
+      # the near rpc the backend reads the chain from. it defaults to
+      # https://rpc.mainnet.fastnear.com, and it is here so a
+      # deployment that serves testnet sets it in one visible place.
+      SHIT_1170_NEAR_RPC_URL: "https://rpc.mainnet.fastnear.com"
 
     # --- WHY --- the tunnel token comes from the repo-root .env
     # through env_file, and NOT through `${TUNNEL_TOKEN}` interpolation:

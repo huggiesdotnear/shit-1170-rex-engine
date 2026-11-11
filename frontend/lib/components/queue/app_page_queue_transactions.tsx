@@ -29,6 +29,10 @@ import { SHIT_1170_APP_PAGE_QUEUE_STORE } from "../../ts/queue/app_page_queue_st
 import { use_page_store_fun } from "../../ts/shared/use_page_store";
 import { shit_1170_code_block_fun } from "../tx/code_block";
 import { shit_1170_queue_args_fun } from "../../ts/shared/queue_args";
+import {
+  shit_1170_queue_is_key_action_fun,
+  shit_1170_queue_key_action_line_fun,
+} from "../../ts/shared/queue_key_action";
 import type { SHIT_1170_TX_QUEUE_TRANSACTION } from "@huggies/shit-1170-rex-engine-middleman";
 // ========================================
 // ========================================
@@ -43,14 +47,28 @@ function transaction_fun(
   transaction: SHIT_1170_TX_QUEUE_TRANSACTION,
 ): preact.JSX.Element {
   const args = shit_1170_queue_args_fun(transaction);
+  // --- WHY --- A KEY ACTION GETS ITS OWN LINE: it is not a call — it
+  // changes the account's own keys — so the contract and the method are
+  // both empty for it. the reader has to see WHAT happens to their keys.
+  const is_key_action = shit_1170_queue_is_key_action_fun(transaction);
   return (
     <div class="queue-transaction">
       <div class="queue-transaction-head">
         <span class="queue-transaction-position">
           {String(transaction.position + 1)}
         </span>
-        <code class="queue-transaction-contract">{transaction.contractId}</code>
-        <span class="queue-transaction-method">{transaction.method}</span>
+        {is_key_action ? (
+          <span class="queue-transaction-key">
+            {shit_1170_queue_key_action_line_fun(transaction)}
+          </span>
+        ) : (
+          <>
+            <code class="queue-transaction-contract">
+              {transaction.contractId}
+            </code>
+            <span class="queue-transaction-method">{transaction.method}</span>
+          </>
+        )}
       </div>
       {(transaction.gas !== null || transaction.deposit !== null) && (
         <div class="queue-transaction-meta">
@@ -64,21 +82,22 @@ function transaction_fun(
           )}
         </div>
       )}
-      {args.binary ? (
-        <div class="queue-transaction-binary">
-          <span class="queue-transaction-binary-label">
-            RAW BYTES — {args.byte_length} BYTE
-            {args.byte_length === 1 ? "" : "S"}
-          </span>
-          <pre class="queue-transaction-binary-hex">
-            <code>{args.hex}</code>
-          </pre>
-        </div>
-      ) : (
-        shit_1170_code_block_fun({
-          code: args.json,
-        })
-      )}
+      {!is_key_action &&
+        (args.binary ? (
+          <div class="queue-transaction-binary">
+            <span class="queue-transaction-binary-label">
+              RAW BYTES — {args.byte_length} BYTE
+              {args.byte_length === 1 ? "" : "S"}
+            </span>
+            <pre class="queue-transaction-binary-hex">
+              <code>{args.hex}</code>
+            </pre>
+          </div>
+        ) : (
+          shit_1170_code_block_fun({
+            code: args.json,
+          })
+        ))}
     </div>
   );
 }
@@ -96,9 +115,7 @@ export function SHIT_1170_COMPONENT_QUEUE_TRANSACTIONS_FUN() {
       <h2>CALLS ({transactions.length})</h2>
       <div class="queue-transactions-list">
         {transactions.map((transaction) => (
-          <div key={transaction.txId}>
-            {transaction_fun(transaction)}
-          </div>
+          <div key={transaction.txId}>{transaction_fun(transaction)}</div>
         ))}
       </div>
     </section>

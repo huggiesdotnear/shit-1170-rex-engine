@@ -30,6 +30,13 @@ pub mod tx_queue_auth_fun;
 pub mod tx_queue_caller_fun;
 pub mod tx_queue_cursor_fun;
 pub mod tx_queue_facets_store;
+pub mod tx_queue_key_action_fun;
+#[cfg(test)]
+pub mod tx_queue_key_action_fun_test;
+pub mod tx_queue_key_method_names_fun;
+pub mod tx_queue_key_verify_fun;
+#[cfg(test)]
+pub mod tx_queue_key_verify_fun_test;
 pub mod tx_queue_named_accounts_fun;
 pub mod tx_queue_row_to_json_fun;
 pub mod tx_queue_stats_store;

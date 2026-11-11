@@ -8,6 +8,24 @@
 // transaction per call, and one account row per transaction per named
 // account.
 //
+// --- WHY --- A TRANSACTION MAY ALSO BE A KEY ACTION: the queue carries
+// two kinds of thing — a CONTRACT CALL, and an ACCESS KEY ACTION
+// (`add_key` or `delete_key`). an agent that may only queue calls can
+// never offer the user "give me a limited key" or "take that limited
+// key away", and those are ordinary things a user asks for.
+//
+// --- WHY --- A `delete_key` IS CHECKED AGAINST THE CHAIN BEFORE IT IS
+// QUEUED: the key's permission lives on chain, and only the chain knows
+// it. a full access key is the user's wallet — deleting it locks them
+// out — so the queue refuses to carry a delete for a key that is not a
+// LIMITED one. the check happens at QUEUE TIME, before anything is
+// written, so a refused request never leaves half of itself in the db.
+//
+// --- WHY --- THE TARGET ACCOUNT IS THE WHO LIST, OR THE CALLER'S OWN
+// ACCOUNT WHEN THE WHO LIST IS EMPTY: the queue is FOR somebody, and
+// the WHO list says who. a public key alone does not say whose key it
+// is — the same key can be on ten accounts.
+//
 // the GET is the feed: it is OPEN. anyone can list the queues, because a
 // queue is an open offer and hiding it would defeat the point.
 //
@@ -15,9 +33,13 @@
 // transaction had no contract id, no method, or args that were not a
 // json object, or args that were not base64, or both kinds of args at
 // once, or the `accounts` list named an account the agent holds
-// NO api key for — the NAMING rule. on the GET, 400 is also a cursor the
-// api did not make, and a `hide_sent` with no account to be about.
+// NO api key for — the NAMING rule — or a key action was not shaped
+// right, or a `delete_key` named a key that is not a limited key on the
+// account it is about. on the GET, 400 is also a cursor the api did not
+// make, and a `hide_sent` with no account to be about.
 // 401 = the x-api-key header is missing, or the key is not one of ours.
+// 503 = the chain could not be read, so a key action could not be
+// checked.
 // 500 = the db could not be reached.
 //
 // --- WHY --- THE GET NEVER ANSWERS A 401: the list is open, and so are
@@ -68,6 +90,13 @@ use crate::backend::logic::endpoint_shit_1170_tx_queue::tx_queue_args_fun::tx_qu
 use crate::backend::logic::endpoint_shit_1170_tx_queue::tx_queue_caller_fun::tx_queue_caller_fun;
 use crate::backend::logic::endpoint_shit_1170_tx_queue::tx_queue_cursor_fun::{
     tx_queue_cursor_decode_fun, tx_queue_cursor_encode_fun,
+};
+use crate::backend::logic::endpoint_shit_1170_tx_queue::tx_queue_key_action_fun::{
+    TX_QUEUE_KEY_ACTION, TX_QUEUE_KEY_ACTION_SHAPE, tx_queue_key_action_read_fun,
+};
+use crate::backend::logic::endpoint_shit_1170_tx_queue::tx_queue_key_method_names_fun::tx_queue_key_method_names_from_json_fun;
+use crate::backend::logic::endpoint_shit_1170_tx_queue::tx_queue_key_verify_fun::{
+    TX_QUEUE_KEY_VERIFY_ERROR, tx_queue_key_verify_fun,
 };
 use crate::backend::logic::endpoint_shit_1170_tx_queue::tx_queue_named_accounts_fun::tx_queue_named_accounts_fun;
 use crate::backend::logic::endpoint_shit_1170_tx_queue::tx_queue_row_to_json_fun::tx_queue_row_to_json_fun;
@@ -205,6 +234,57 @@ pub async fn tx_queue_post_route(
         }
     }
 
+    // --- THE KEY ACTIONS ------------------
+    // a `delete_key` is checked AGAINST THE CHAIN before anything is
+    // written. the check is here and not later because the whole point
+    // is that a refused batch never leaves half of itself in the db.
+    //
+    // --- WHY --- THE TARGET ACCOUNT IS THE WHO LIST, OR THE CALLER'S
+    // OWN ACCOUNT WHEN THE WHO LIST IS EMPTY: the queue is FOR somebody,
+    // and the WHO list is the only thing that says who. an agent that
+    // queues a key action for itself names nobody, and then the account
+    // the key belongs to is the account the api key belongs to.
+    //
+    // --- WHY --- THE NAMING RULE HAS ALREADY RUN: the accounts have
+    // been checked to be the agent's own users, so the chain check
+    // cannot be pointed at somebody else's account.
+    let target_accounts: Vec<String> = if named_accounts.is_empty() {
+        vec![account_id.clone()]
+    } else {
+        named_accounts.clone()
+    };
+
+    // --- WHY --- THE TARGETS ARE DEDUPED: the WHO list may name the same
+    // account twice — the agent wrote it twice — and checking it twice
+    // would cost two round trips to the chain for the same answer.
+    let mut targets: Vec<&String> = Vec::with_capacity(target_accounts.len());
+    for target in &target_accounts {
+        if !targets.contains(&target) {
+            targets.push(target);
+        }
+    }
+
+    for one in &prepared {
+        // --- WHY --- ONLY A DELETE IS CHECKED: an `add_key` names a key
+        // that does not exist yet, so there is nothing on chain to
+        // check, and it cannot take anything away.
+        if one.key_action != Some(TX_QUEUE_KEY_ACTION::DeleteKey) {
+            continue;
+        }
+
+        let public_key = one.key_public_key.clone().unwrap_or_default();
+        for target in &targets {
+            match tx_queue_key_verify_fun(target, &public_key).await {
+                Ok(()) => {}
+                Err(failure) => {
+                    let (status, code, message) =
+                        key_verify_failure_fun(failure, target, &public_key);
+                    return shit_1170_error_fun(status, &code, &message).into_response();
+                }
+            }
+        }
+    }
+
     // --- THE WRITE ------------------------
     let queue_id = tx_queue_uuid_fun();
     if let Err(err) = tx_queue_insert_fun(
@@ -240,6 +320,14 @@ pub async fn tx_queue_post_route(
             one.args_base64.as_deref(),
             one.gas.as_deref(),
             one.deposit.as_deref(),
+            one.key_action.map(|action| match action {
+                TX_QUEUE_KEY_ACTION::AddKey => "add_key",
+                TX_QUEUE_KEY_ACTION::DeleteKey => "delete_key",
+            }),
+            one.key_public_key.as_deref(),
+            one.key_receiver_id.as_deref(),
+            one.key_method_names.as_deref(),
+            one.key_allowance.as_deref(),
         )
         .await
         {
@@ -526,7 +614,84 @@ pub async fn tx_queue_get_route(
 }
 // ========================================
 // --- HELPERS ----------------------------
+// why a key action was refused, as the status and the code and the
+// words.
+//
+// --- WHY --- THE CODE SAYS WHICH THING WENT WRONG: a key that is not
+// there and a key that is full access are different facts, and the user
+// reads them differently. one code for both would leave them guessing.
+//
+// --- WHY --- THE CHAIN BEING UNREACHABLE IS A 503 AND NOT A 400: the
+// request was fine, the chain was not. and it is NOT a 500: nothing
+// broke, the app just could not answer right now, and the client should
+// come back.
+fn key_verify_failure_fun(
+    failure: TX_QUEUE_KEY_VERIFY_ERROR,
+    account_id: &str,
+    public_key: &str,
+) -> (StatusCode, String, String) {
+    match failure {
+        TX_QUEUE_KEY_VERIFY_ERROR::NoSuchKey => (
+            StatusCode::BAD_REQUEST,
+            "key_action_not_allowed".to_string(),
+            format!("{account_id} has no access key {public_key}"),
+        ),
+        TX_QUEUE_KEY_VERIFY_ERROR::NotALimitedKey => (
+            StatusCode::BAD_REQUEST,
+            "key_action_not_allowed".to_string(),
+            format!(
+                "the access key {public_key} of {account_id} is a full access key, not a limited one, so it may not be removed by the queue"
+            ),
+        ),
+        TX_QUEUE_KEY_VERIFY_ERROR::BadAccountId => (
+            StatusCode::BAD_REQUEST,
+            "bad_account_id".to_string(),
+            format!("{account_id} is not a NEAR account id"),
+        ),
+        TX_QUEUE_KEY_VERIFY_ERROR::BadPublicKey => (
+            StatusCode::BAD_REQUEST,
+            "bad_key_public_key".to_string(),
+            format!("{public_key} is not a NEAR public key"),
+        ),
+        TX_QUEUE_KEY_VERIFY_ERROR::ChainUnreachable => (
+            StatusCode::SERVICE_UNAVAILABLE,
+            "chain_unreachable".to_string(),
+            "the chain could not be read, so the key could not be checked".to_string(),
+        ),
+    }
+}
+
+// ========================================
+// --- HELPERS ----------------------------
 // one transaction of the batch, checked and ready to write.
+//
+// --- WHY --- A TRANSACTION IS EITHER A CONTRACT CALL OR A KEY ACTION:
+// the two are different things the user approves in the same popup. a
+// key action has no contract and no method, and a contract call has no
+// key. a transaction that claims to be both is refused — it does not
+// say what it is.
+//
+// --- WHY --- THE KEY ACTION IS READ FIRST: it is the one that says
+// "this is not a contract call", and reading it first is what lets the
+// contract id and the method stay required for the calls that ARE
+// calls.
+fn prepared_transaction_fun(
+    transaction: &TX_QUEUE_TRANSACTION_REQUEST,
+    position: i64,
+) -> Result<PREPARED_TRANSACTION, (String, String)> {
+    let key_action = tx_queue_key_action_read_fun(transaction).map_err(|(code, message)| {
+        (code, format!("the transaction at position {position}: {message}"))
+    })?;
+
+    match key_action {
+        Some(shape) => prepared_key_transaction_fun(transaction, position, shape),
+        None => prepared_call_transaction_fun(transaction, position),
+    }
+}
+
+// ========================================
+// --- PREPARED CALL ---------------------
+// a CONTRACT CALL, checked and ready to write.
 //
 // --- WHY --- the args must be a JSON OBJECT: the near-kit toolbox takes
 // a json object of arguments, and the frontend hands the transactions
@@ -550,7 +715,7 @@ pub async fn tx_queue_get_route(
 // bytes have to survive the db and come back the same, and a string
 // that is not base64 is a string that will not decode into bytes. the
 // check happens where the mistake is still visible — at the request.
-fn prepared_transaction_fun(
+fn prepared_call_transaction_fun(
     transaction: &TX_QUEUE_TRANSACTION_REQUEST,
     position: i64,
 ) -> Result<PREPARED_TRANSACTION, (String, String)> {
@@ -653,6 +818,77 @@ fn prepared_transaction_fun(
         args_base64,
         gas: transaction.gas.clone(),
         deposit: transaction.deposit.clone(),
+        key_action: None,
+        key_public_key: None,
+        key_receiver_id: None,
+        key_method_names: None,
+        key_allowance: None,
+    })
+}
+
+// ========================================
+// --- PREPARED KEY ----------------------
+// a KEY ACTION, checked and ready to write.
+//
+// --- WHY --- THE CONTRACT ID AND THE METHOD ARE WRITTEN AS EMPTY
+// STRINGS: their columns are `NOT NULL` and making them nullable would
+// need a table rebuild. the empty string means "this is not a contract
+// call", and the `key_action` column is what says what it IS.
+//
+// --- WHY --- THE ARGS ARE THE EMPTY OBJECT: a key action has no
+// arguments, and the `args` column is `NOT NULL` too.
+//
+// --- WHY --- A KEY ACTION MAY NOT CARRY A CONTRACT: it has no contract
+// to call, so a contract id on it is a mistake in the request. and it
+// may not carry args either — a key action is not a call.
+fn prepared_key_transaction_fun(
+    transaction: &TX_QUEUE_TRANSACTION_REQUEST,
+    position: i64,
+    shape: TX_QUEUE_KEY_ACTION_SHAPE,
+) -> Result<PREPARED_TRANSACTION, (String, String)> {
+    // --- WHY --- THE BOTH RULE IS CHECKED HERE AND NOT ON THE WAY IN:
+    // the key action was read first because it is what says "this is
+    // not a contract call", so this is where the "and it is not a
+    // contract call either" half of the rule lives.
+    if !transaction.contract_id.trim().is_empty() || !transaction.method.trim().is_empty() {
+        return Err((
+            "key_action_and_contract_call".to_string(),
+            format!(
+                "the transaction at position {position} is a key action and a contract call at once — it must be one or the other"
+            ),
+        ));
+    }
+
+    // --- THE METHOD NAMES ---------------
+    // they ride as a json array string in the column.
+    let key_method_names = match shape.method_names.as_deref() {
+        Some(names) => match tx_queue_key_method_names_from_json_fun(names) {
+            Ok(json) => Some(json),
+            Err(err) => {
+                return Err((
+                    "bad_key_method_names".to_string(),
+                    format!(
+                        "the keyMethodNames of the transaction at position {position} are not json: {err}"
+                    ),
+                ));
+            }
+        },
+        None => None,
+    };
+
+    Ok(PREPARED_TRANSACTION {
+        position,
+        contract_id: String::new(),
+        method: String::new(),
+        args: tx_queue_args_from_json_fun(&serde_json::json!({})).unwrap_or_else(|_| "{}".to_string()),
+        args_base64: None,
+        gas: None,
+        deposit: None,
+        key_action: Some(shape.action),
+        key_public_key: Some(shape.public_key),
+        key_receiver_id: shape.receiver_id,
+        key_method_names,
+        key_allowance: shape.allowance,
     })
 }
 
@@ -786,6 +1022,11 @@ async fn queue_item_from_row_fun(
 // --- WHY --- THE BASE64 IS A FIELD OF ITS OWN: it is not part of the
 // json args, it is the OTHER way to carry them. a row has either a json
 // object or a run of bytes, and the struct says which.
+//
+// --- WHY --- THE KEY FIELDS ARE HERE AND NOT IN A SECOND STRUCT: a row
+// is EITHER a contract call OR a key action, and one row carries both
+// shapes' columns. the `key_action` field says which one it is, and a
+// contract call leaves the rest at none.
 struct PREPARED_TRANSACTION {
     position: i64,
     contract_id: String,
@@ -794,6 +1035,18 @@ struct PREPARED_TRANSACTION {
     args_base64: Option<String>,
     gas: Option<String>,
     deposit: Option<String>,
+    // the key action, when this transaction is one.
+    //
+    // --- WHY --- IT IS THE ENUM AND NOT A STRING: the route asks "is
+    // this a delete" and an enum answers that without a string
+    // comparison that could be wrong.
+    key_action: Option<TX_QUEUE_KEY_ACTION>,
+    key_public_key: Option<String>,
+    key_receiver_id: Option<String>,
+    // the method names, already as the json array string the column
+    // holds.
+    key_method_names: Option<String>,
+    key_allowance: Option<String>,
 }
 
 // the one json error shape every failure of this route answers with.

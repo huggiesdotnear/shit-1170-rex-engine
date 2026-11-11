@@ -155,6 +155,11 @@ async fn the_tx_queue_transactions_table_has_its_columns() {
             "args_base64",
             "gas",
             "deposit",
+            "key_action",
+            "key_public_key",
+            "key_receiver_id",
+            "key_method_names",
+            "key_allowance",
             "created_at",
             "updated_at"
         ]
@@ -697,6 +702,72 @@ async fn an_old_db_gets_the_args_base64_column_and_a_new_one_does_not_break() {
         columns.contains(&"args_base64".to_string()),
         "the old db must have gained the column: {columns:?}"
     );
+
+    // and opening it AGAIN must not fail with "duplicate column name".
+    let _pool_again = db.pool_fun().await;
+    let columns_again = columns_of_fun(&_pool_again, "tx_queue_transactions").await;
+    assert_eq!(columns_again, columns);
+}
+
+#[tokio::test]
+async fn an_old_db_gets_the_key_columns_and_a_new_one_does_not_break() {
+    // --- WHY --- THIS IS THE SAME PROBLEM, FIVE TIMES OVER: a db that
+    // was made BEFORE the key action existed would never get the five
+    // `key_*` columns from `CREATE TABLE IF NOT EXISTS`, so they are
+    // added by an `ALTER TABLE` that checks first. this test makes the
+    // old db, opens it, and checks the columns are there.
+    let db = TEMP_DB::new_fun("old-db-key-columns");
+    {
+        // the db as it was BEFORE the key columns existed.
+        //
+        // --- WHY --- A RAW POOL AND NOT `db_open_fun`: `db_open_fun`
+        // runs the schema, and the schema is what this test is checking.
+        // so the old table is made by hand here.
+        let options = SqliteConnectOptions::new()
+            .filename(&db.path)
+            .create_if_missing(true);
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect_with(options)
+            .await
+            .expect("the db should connect");
+        sqlx::query(
+            "CREATE TABLE IF NOT EXISTS tx_queue_transactions (
+                tx_id              TEXT    NOT NULL PRIMARY KEY,
+                queue_id           TEXT    NOT NULL,
+                position           INTEGER NOT NULL,
+                contract_id        TEXT    NOT NULL,
+                method             TEXT    NOT NULL,
+                args               TEXT    NOT NULL,
+                args_base64        TEXT,
+                gas                TEXT,
+                deposit            TEXT,
+                created_at         INTEGER NOT NULL,
+                updated_at         INTEGER NOT NULL
+            )",
+        )
+        .execute(&pool)
+        .await
+        .expect("the old table should be made");
+        pool.close().await;
+    }
+
+    // opening it runs the schema, and the schema adds the columns.
+    let pool = db.pool_fun().await;
+
+    let columns = columns_of_fun(&pool, "tx_queue_transactions").await;
+    for name in [
+        "key_action",
+        "key_public_key",
+        "key_receiver_id",
+        "key_method_names",
+        "key_allowance",
+    ] {
+        assert!(
+            columns.contains(&name.to_string()),
+            "the old db must have gained the {name} column: {columns:?}"
+        );
+    }
 
     // and opening it AGAIN must not fail with "duplicate column name".
     let _pool_again = db.pool_fun().await;

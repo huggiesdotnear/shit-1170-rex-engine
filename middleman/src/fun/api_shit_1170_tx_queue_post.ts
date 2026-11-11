@@ -22,9 +22,18 @@
 // --- WHY --- the cap is checked here too: fifty is the number the
 // wallet popup can be read at, and a caller who goes over it deserves
 // to hear about it before the round trip.
+//
+// --- WHY --- THE KEY ACTION IS CHECKED HERE AND NOT ONLY ON THE SERVER:
+// a queued transaction is EITHER a contract call OR a key action, and
+// the mistakes are the ones the backend answers with named codes —
+// `key_action_and_contract_call`, `no_key_public_key`,
+// `no_key_receiver_id`. they are refused here with the same code
+// words, so the caller hears about them before the round trip.
 // ========================================
 
 import { api_call } from "../stuff/api_call";
+import { tx_queue_key_action_check_fun } from "../stuff/tx_queue_key_action_check_fun";
+import { tx_queue_valid_fun } from "../stuff/tx_queue_valid_fun";
 import type { REQUEST_OPTIONS } from "../stuff/request_options";
 import type {
   SHIT_1170_TX_QUEUE,
@@ -51,6 +60,18 @@ export async function api_shit_1170_tx_queue_post(
     );
   }
 
+  // --- THE KEY ACTIONS -----------------
+  // every transaction in the batch is checked, in the order they are
+  // given, so the message names the position of the offending one.
+  body.transactions.forEach((transaction, position) => {
+    try {
+      tx_queue_key_action_check_fun(transaction, position);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      throw new Error(`api_shit_1170_tx_queue_post failed: ${message}`);
+    }
+  });
+
   const json = await api_call<SHIT_1170_TX_QUEUE>({
     base_url,
     key: "api_shit_1170_tx_queue",
@@ -61,15 +82,9 @@ export async function api_shit_1170_tx_queue_post(
     fallback: "api_shit_1170_tx_queue_post failed",
   });
 
-  if (
-    typeof json !== "object" ||
-    json === null ||
-    Array.isArray(json) ||
-    typeof json.queueId !== "string" ||
-    !Array.isArray(json.transactions)
-  ) {
+  if (!tx_queue_valid_fun(json)) {
     throw new Error(
-      "api_shit_1170_tx_queue_post failed: invalid_response: expected a json object with a queueId and a transactions array",
+      "api_shit_1170_tx_queue_post failed: invalid_response: expected a json object with a queueId and a transactions array, and every transaction must carry its keyAction fields",
     );
   }
 

@@ -91,6 +91,10 @@ async function app_page_keys_store_load_fun(): Promise<void> {
 // refuses the key if it is asked for anyway.
 function toggle_pick_fun(row: SHIT_1170_APP_PAGE_KEYS_ROW): void {
   if (row.full_access) return;
+  // --- WHY --- A QUEUED KEY IS NOT PICKED: it is not on the chain yet —
+  // it is waiting for the reader to approve it in the feed — so there is
+  // nothing on the chain to remove.
+  if (row.queued) return;
   if (picked.has(row.public_key)) {
     picked.delete(row.public_key);
   } else {

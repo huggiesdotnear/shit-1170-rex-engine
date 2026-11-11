@@ -3,11 +3,21 @@
 // the tx_queue_transactions table: one row per transaction inside a
 // queued batch.
 //
-// --- WHY --- only FUNCTION CALLS can be queued: no transfers, no key
-// management, no account creation. each row carries the near-kit toolbox
-// `generic_contract_call_fun` shape — contract id, method, args, gas,
-// deposit — so the frontend can hand the transactions straight to
-// `generic_contract_call_wallet` without reshaping them.
+// --- WHY --- a row is EITHER a function call OR a key action: a
+// function call carries the near-kit toolbox `generic_contract_call_fun`
+// shape — contract id, method, args, gas, deposit — so the frontend can
+// hand the transactions straight to `generic_contract_call_wallet` without
+// reshaping them. a KEY ACTION carries the access key it adds or
+// removes, and the five `key_*` columns are what it needs. there is
+// still no transfer and no account creation.
+//
+// --- WHY --- `contract_id` and `method` STAY `NOT NULL` AND A KEY
+// ACTION WRITES EMPTY STRINGS INTO THEM: making them nullable would
+// need a table rebuild — sqlite cannot drop a `NOT NULL` — and a
+// rebuild on a live vault is a risk the queue does not need. so a key
+// action row carries `contract_id = ''` and `method = ''`, and the
+// EMPTY STRING MEANS "this is not a contract call". the `key_action`
+// column is what says which it is.
 //
 // --- WHY --- `contract_id`, `method` and `args` have their OWN columns
 // and not one json blob: the plan is to later show "the most common
@@ -72,6 +82,11 @@ pub const SHIT_1170_DB_TABLE_TX_QUEUE_TRANSACTIONS: &str = r#"
     args_base64        TEXT,
     gas                TEXT,
     deposit            TEXT,
+    key_action         TEXT,
+    key_public_key     TEXT,
+    key_receiver_id    TEXT,
+    key_method_names   TEXT,
+    key_allowance      TEXT,
     created_at         INTEGER NOT NULL,
     updated_at         INTEGER NOT NULL,
     FOREIGN KEY (queue_id) REFERENCES tx_queue (queue_id) ON DELETE CASCADE
@@ -86,9 +101,18 @@ pub const SHIT_1170_DB_TABLE_TX_QUEUE_TRANSACTIONS: &str = r#"
     ON tx_queue_transactions (created_at);
 "#;
 
-// the column the `ALTER TABLE` adds, named once so the check and the
+// the columns the `ALTER TABLE` adds, named once so the check and the
 // statement cannot drift apart.
+//
+// --- WHY --- EACH ONE HAS ITS OWN CONSTANT AND NOT ONE LIST: the
+// pattern this file already uses is one named column per `ALTER TABLE`,
+// and a list would be a second way of writing the same thing.
 const SHIT_1170_TX_QUEUE_TRANSACTIONS_ARGS_BASE64_COLUMN: &str = "args_base64";
+const SHIT_1170_TX_QUEUE_TRANSACTIONS_KEY_ACTION_COLUMN: &str = "key_action";
+const SHIT_1170_TX_QUEUE_TRANSACTIONS_KEY_PUBLIC_KEY_COLUMN: &str = "key_public_key";
+const SHIT_1170_TX_QUEUE_TRANSACTIONS_KEY_RECEIVER_ID_COLUMN: &str = "key_receiver_id";
+const SHIT_1170_TX_QUEUE_TRANSACTIONS_KEY_METHOD_NAMES_COLUMN: &str = "key_method_names";
+const SHIT_1170_TX_QUEUE_TRANSACTIONS_KEY_ALLOWANCE_COLUMN: &str = "key_allowance";
 // ========================================
 // --- CREATE ----------------------------
 // create the tx_queue_transactions table if it is not there yet.
@@ -117,6 +141,14 @@ pub async fn db_table_tx_queue_transactions_create_fun(
 
     // the column that came after the table was first written.
     db_table_tx_queue_transactions_add_args_base64_fun(connection).await?;
+
+    // the columns that carry the KEY ACTION. they came after the
+    // `args_base64` one, and they follow the same pattern.
+    db_table_tx_queue_transactions_add_key_action_fun(connection).await?;
+    db_table_tx_queue_transactions_add_key_public_key_fun(connection).await?;
+    db_table_tx_queue_transactions_add_key_receiver_id_fun(connection).await?;
+    db_table_tx_queue_transactions_add_key_method_names_fun(connection).await?;
+    db_table_tx_queue_transactions_add_key_allowance_fun(connection).await?;
 
     Ok(())
 }
@@ -158,6 +190,160 @@ pub async fn db_table_tx_queue_transactions_add_args_base64_fun(
 
     connection
         .execute("ALTER TABLE tx_queue_transactions ADD COLUMN args_base64 TEXT")
+        .await?;
+
+    Ok(())
+}
+
+// ========================================
+// --- ADD KEY ACTION --------------------
+// add the `key_action` column to a db that was made before it existed.
+//
+// --- WHY --- THE PATTERN IS THE ONE THE `args_base64` COLUMN USED: the
+// column is checked first, and the `ALTER TABLE` only runs when the
+// column is missing. sqlite has no `ADD COLUMN IF NOT EXISTS`, so the
+// pragma is what keeps the statement from failing on a db that already
+// has the column.
+//
+// --- WHY --- IT IS ITS OWN FILE'S WORTH OF FUNCTION: the rule is one
+// function per file, and five columns means five of them. a loop over
+// a list would be one function doing five jobs, and a job list in a
+// const is a shape that hides which column is which.
+pub async fn db_table_tx_queue_transactions_add_key_action_fun(
+    connection: &mut SqliteConnection,
+) -> Result<(), sqlx::Error> {
+    let has_column = sqlx::query("SELECT name FROM pragma_table_info('tx_queue_transactions')")
+        .fetch_all(&mut *connection)
+        .await?
+        .iter()
+        .any(|row| row.get::<String, _>("name") == SHIT_1170_TX_QUEUE_TRANSACTIONS_KEY_ACTION_COLUMN);
+
+    if has_column {
+        return Ok(());
+    }
+
+    connection
+        .execute("ALTER TABLE tx_queue_transactions ADD COLUMN key_action TEXT")
+        .await?;
+
+    Ok(())
+}
+
+// ========================================
+// --- ADD KEY PUBLIC KEY -----------------
+// add the `key_public_key` column to a db that was made before it
+// existed.
+//
+// --- WHY --- THE PATTERN IS THE ONE THE `args_base64` COLUMN USED: the
+// column is checked first, and the `ALTER TABLE` only runs when the
+// column is missing.
+pub async fn db_table_tx_queue_transactions_add_key_public_key_fun(
+    connection: &mut SqliteConnection,
+) -> Result<(), sqlx::Error> {
+    let has_column = sqlx::query("SELECT name FROM pragma_table_info('tx_queue_transactions')")
+        .fetch_all(&mut *connection)
+        .await?
+        .iter()
+        .any(|row| {
+            row.get::<String, _>("name") == SHIT_1170_TX_QUEUE_TRANSACTIONS_KEY_PUBLIC_KEY_COLUMN
+        });
+
+    if has_column {
+        return Ok(());
+    }
+
+    connection
+        .execute("ALTER TABLE tx_queue_transactions ADD COLUMN key_public_key TEXT")
+        .await?;
+
+    Ok(())
+}
+
+// ========================================
+// --- ADD KEY RECEIVER ID ----------------
+// add the `key_receiver_id` column to a db that was made before it
+// existed.
+//
+// --- WHY --- THE PATTERN IS THE ONE THE `args_base64` COLUMN USED: the
+// column is checked first, and the `ALTER TABLE` only runs when the
+// column is missing.
+pub async fn db_table_tx_queue_transactions_add_key_receiver_id_fun(
+    connection: &mut SqliteConnection,
+) -> Result<(), sqlx::Error> {
+    let has_column = sqlx::query("SELECT name FROM pragma_table_info('tx_queue_transactions')")
+        .fetch_all(&mut *connection)
+        .await?
+        .iter()
+        .any(|row| {
+            row.get::<String, _>("name") == SHIT_1170_TX_QUEUE_TRANSACTIONS_KEY_RECEIVER_ID_COLUMN
+        });
+
+    if has_column {
+        return Ok(());
+    }
+
+    connection
+        .execute("ALTER TABLE tx_queue_transactions ADD COLUMN key_receiver_id TEXT")
+        .await?;
+
+    Ok(())
+}
+
+// ========================================
+// --- ADD KEY METHOD NAMES ---------------
+// add the `key_method_names` column to a db that was made before it
+// existed.
+//
+// --- WHY --- THE PATTERN IS THE ONE THE `args_base64` COLUMN USED: the
+// column is checked first, and the `ALTER TABLE` only runs when the
+// column is missing.
+pub async fn db_table_tx_queue_transactions_add_key_method_names_fun(
+    connection: &mut SqliteConnection,
+) -> Result<(), sqlx::Error> {
+    let has_column = sqlx::query("SELECT name FROM pragma_table_info('tx_queue_transactions')")
+        .fetch_all(&mut *connection)
+        .await?
+        .iter()
+        .any(|row| {
+            row.get::<String, _>("name") == SHIT_1170_TX_QUEUE_TRANSACTIONS_KEY_METHOD_NAMES_COLUMN
+        });
+
+    if has_column {
+        return Ok(());
+    }
+
+    connection
+        .execute("ALTER TABLE tx_queue_transactions ADD COLUMN key_method_names TEXT")
+        .await?;
+
+    Ok(())
+}
+
+// ========================================
+// --- ADD KEY ALLOWANCE ------------------
+// add the `key_allowance` column to a db that was made before it
+// existed.
+//
+// --- WHY --- THE PATTERN IS THE ONE THE `args_base64` COLUMN USED: the
+// column is checked first, and the `ALTER TABLE` only runs when the
+// column is missing.
+pub async fn db_table_tx_queue_transactions_add_key_allowance_fun(
+    connection: &mut SqliteConnection,
+) -> Result<(), sqlx::Error> {
+    let has_column = sqlx::query("SELECT name FROM pragma_table_info('tx_queue_transactions')")
+        .fetch_all(&mut *connection)
+        .await?
+        .iter()
+        .any(|row| {
+            row.get::<String, _>("name") == SHIT_1170_TX_QUEUE_TRANSACTIONS_KEY_ALLOWANCE_COLUMN
+        });
+
+    if has_column {
+        return Ok(());
+    }
+
+    connection
+        .execute("ALTER TABLE tx_queue_transactions ADD COLUMN key_allowance TEXT")
         .await?;
 
     Ok(())

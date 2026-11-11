@@ -66,6 +66,13 @@ export interface SHIT_1170_APP_PAGE_KEYS_ROW {
   // once had and what it was for. a key that vanishes from the list
   // the moment it leaves the chain takes that knowledge with it.
   removed: boolean;
+  // true when the key is in the QUEUE and is not on the chain yet.
+  //
+  // --- WHY IT IS NOT THE SAME AS `removed`: a queued key is not gone —
+  // it is waiting for the reader to approve it in the feed. the page
+  // says QUEUED for it and REMOVED for the other, because they are
+  // different facts.
+  queued: boolean;
 }
 // ========================================
 // the page's data: the rows and what went wrong.
@@ -111,6 +118,7 @@ function rows_from_access_keys_fun(
         nonce,
         secret_key: null,
         removed: false,
+        queued: false,
       });
       continue;
     }
@@ -129,6 +137,7 @@ function rows_from_access_keys_fun(
       nonce,
       secret_key: null,
       removed: false,
+      queued: false,
     });
   }
 
@@ -197,6 +206,7 @@ function merge_vault_fun(
     receiver_id: string;
     method_names: string[];
     allowance_yocto: string | null;
+    queued?: boolean;
   }>,
 ): SHIT_1170_APP_PAGE_KEYS_ROW[] {
   const by_public_key = new Map<
@@ -206,6 +216,7 @@ function merge_vault_fun(
       receiver_id: string;
       method_names: string[];
       allowance_yocto: string | null;
+      queued: boolean;
     }
   >();
   for (const row of vault_rows) {
@@ -214,6 +225,7 @@ function merge_vault_fun(
       receiver_id: row.receiver_id,
       method_names: row.method_names,
       allowance_yocto: row.allowance_yocto,
+      queued: row.queued === true,
     });
   }
 
@@ -223,6 +235,9 @@ function merge_vault_fun(
     return {
       ...row,
       secret_key: stored.secret_key,
+      // --- WHY --- THE CHAIN WINS ON THE QUEUE FLAG: a key that IS on
+      // the chain is not waiting for approval anymore.
+      queued: false,
       // the chain is the truth about the contract, the methods and the
       // allowance, so they are only filled in from the record when the
       // chain has nothing to say.
@@ -245,7 +260,12 @@ function merge_vault_fun(
       allowance: row.allowance_yocto,
       nonce: 0,
       secret_key: row.secret_key,
-      removed: true,
+      // --- WHY --- A QUEUED KEY IS NOT A REMOVED KEY: it is not on the
+      // chain yet because it is WAITING for the reader to approve it in
+      // the feed. the page says QUEUED for it, and a dimmed crossed-out
+      // row would say the opposite.
+      removed: row.queued !== true,
+      queued: row.queued === true,
     });
   }
 

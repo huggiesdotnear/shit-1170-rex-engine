@@ -80,6 +80,29 @@ pub struct TX_QUEUE_TRANSACTION_REQUEST {
     // the deposit, as a string. it may be nothing.
     #[serde(default)]
     pub deposit: Option<String>,
+    // the KEY ACTION — `add_key` or `delete_key`. it may be nothing, and
+    // then the transaction is an ordinary contract call.
+    //
+    // --- WHY --- A KEY ACTION IS NOT A CONTRACT CALL: a call names a
+    // contract and a method, and a key action names a public key. they
+    // are different things the user approves, so they are different
+    // fields, and a transaction that carries both is refused rather
+    // than guessed at.
+    #[serde(default)]
+    pub key_action: Option<String>,
+    // the public key the key action names.
+    #[serde(default)]
+    pub key_public_key: Option<String>,
+    // the contract the new key may call. it is only there for `add_key`.
+    #[serde(default)]
+    pub key_receiver_id: Option<String>,
+    // the methods the new key may call. it is only there for `add_key`.
+    #[serde(default)]
+    pub key_method_names: Option<Vec<String>>,
+    // the yoctoNEAR ceiling on the new key. it is only there for
+    // `add_key`.
+    #[serde(default)]
+    pub key_allowance: Option<String>,
 }
 
 // the queue body: a batch of transactions and the WHO it is for.
@@ -209,6 +232,29 @@ pub struct TX_QUEUE_TRANSACTION {
     pub gas: Option<String>,
     // the deposit, as a string. it may be nothing.
     pub deposit: Option<String>,
+    // the KEY ACTION — `add_key`, `delete_key`, or null for an ordinary
+    // contract call.
+    //
+    // --- WHY --- IT IS ALWAYS ON THE WIRE AND NOT LEFT OUT: a client
+    // reads one shape for every transaction, and a field that is
+    // sometimes missing and sometimes null is a field every client has
+    // to check for. null says "this is a contract call".
+    pub key_action: Option<String>,
+    // the public key the key action names. it is null for a contract
+    // call.
+    pub key_public_key: Option<String>,
+    // the contract the new key may call. it is null for a contract call
+    // and for a `delete_key`.
+    pub key_receiver_id: Option<String>,
+    // the methods the new key may call. it is null for a contract call
+    // and for a `delete_key`.
+    //
+    // --- WHY --- IT IS A LIST AND NOT A STRING: the wire shape of a
+    // list is a list, and a client should not have to parse it.
+    pub key_method_names: Option<Vec<String>>,
+    // the yoctoNEAR ceiling on the new key. it is null for a contract
+    // call and for a `delete_key`.
+    pub key_allowance: Option<String>,
     // the accounts on THIS transaction.
     pub accounts: Vec<TX_QUEUE_ACCOUNT>,
 }

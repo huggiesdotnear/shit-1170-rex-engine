@@ -32,9 +32,17 @@
 // --- WHY --- `cursor` is handed back EXACTLY as the backend gave it:
 // the cursor is opaque, and a middleman that reshaped it would break
 // the page the moment the backend changed the order.
+//
+// --- WHY --- EVERY TRANSACTION IN THE ANSWER IS CHECKED: a queued
+// transaction is EITHER a contract call OR a key action, and the
+// backend always sends the `keyAction` fields. a transaction that
+// arrives without them, or with a `keyAction` that is some other word,
+// is not one of ours, and a reader that treated it as a contract call
+// would show the user something the user is not approving.
 // ========================================
 
 import { api_call } from "../stuff/api_call";
+import { tx_queue_transaction_valid_fun } from "../stuff/tx_queue_transaction_valid_fun";
 import type { REQUEST_OPTIONS } from "../stuff/request_options";
 import type { SHIT_1170_TX_QUEUE_LIST } from "../types/shit_1170_tx_queue";
 import type { SHIT_1170_TX_QUEUE_QUERY } from "../types/shit_1170_tx_queue_query";
@@ -79,6 +87,25 @@ export async function api_shit_1170_tx_queue_get(
     throw new Error(
       "api_shit_1170_tx_queue_get failed: invalid_response: expected a json object with an items array, a total and a nextCursor",
     );
+  }
+
+  // --- WHY --- EVERY BATCH IN THE PAGE IS CHECKED: the items are the
+  // batches, and a batch holds transactions. a transaction that is
+  // missing its `keyAction` fields, or that carries a `keyAction` that
+  // is neither `add_key` nor `delete_key`, is not a transaction the
+  // backend wrote.
+  for (const item of json.items) {
+    if (
+      typeof item !== "object" ||
+      item === null ||
+      Array.isArray(item) ||
+      !Array.isArray(item.transactions) ||
+      !item.transactions.every((one) => tx_queue_transaction_valid_fun(one))
+    ) {
+      throw new Error(
+        "api_shit_1170_tx_queue_get failed: invalid_response: every transaction must carry its keyAction fields",
+      );
+    }
   }
 
   return json;

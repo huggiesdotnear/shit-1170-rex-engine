@@ -15,7 +15,7 @@ a queued tx is **WHAT, WHEN, WHY, WHO, HOW**.
   machine-readable moment
 - **WHY** - why the user wants them
 - **WHO** - the accounts the batch is for
-- **HOW** - the function calls themselves
+- **HOW** - the function calls themselves, or a key action
 
 a queue is a **BATCH** of transactions, not one transaction. the agent
 queues a swap, and that swap needs three function calls - a deposit, the
@@ -30,6 +30,42 @@ a QUEUE  (queue_id)          what / when / why
   └── a TRANSACTION          contractId / method / args / gas / deposit
         └── an ACCOUNT ROW    accountId / status / txHash
 ```
+
+## THE TWO KINDS OF TRANSACTION
+
+a queued transaction is EITHER a **contract call** OR a **key action**.
+
+a **contract call** is the usual one: a contract, a method, and the
+arguments.
+
+a **key action** is an access key operation - `add_key` or
+`delete_key`:
+
+- `add_key` - give the account a new LIMITED key. it names the public
+  key, the contract the key may call, the methods it may call, and
+  optionally a yoctoNEAR ceiling.
+- `delete_key` - take a LIMITED key off the account. it names the
+  public key, and nothing else.
+
+> --- WHY --- the queue carries key actions at all. an agent that may
+> only queue calls can never offer the user "give me a limited key" or
+> "take that limited key away", and those are ordinary things a user
+> asks for. a limited key is how an agent is given the right to do one
+> thing and not another, and removing one is how a user takes that
+> right back.
+
+> --- WHY --- A KEY ACTION HAS NO CONTRACT AND NO METHOD. it is not a
+> call, and it does not call anything. the db's `contract_id` and
+> `method` columns are `NOT NULL` and nulling them would need a table
+> rebuild, so a key action writes the EMPTY STRING there. the empty
+> string means "this is not a contract call", and the `keyAction` field
+> is what says which it is.
+
+> --- WHY --- ONLY A DELETE IS CHECKED AGAINST THE CHAIN. an `add_key`
+> names a key that does not exist yet, so there is nothing on chain to
+> check - and it cannot take anything away. a `delete_key` CAN take
+> something away, and the thing it takes away may be the user's whole
+> wallet.
 
 ## THE STATUS
 
@@ -213,6 +249,80 @@ their feed before anyone has signed it.
 > straight to `generic_contract_call_wallet`. an array or a bare string
 > is not a set of named arguments, and the call would fail on chain.
 
+### the key actions
+
+a transaction that carries a `keyAction` is a key action and not a
+contract call:
+
+```json
+{
+  "what": "take back the key i gave you",
+  "transactions": [
+    {
+      "keyAction": "delete_key",
+      "keyPublicKey": "ed25519:FrtUfbY74kXpBiWmqeQMtn7jKCX3zJhmwyg32ZqANj3c"
+    },
+    {
+      "keyAction": "add_key",
+      "keyPublicKey": "ed25519:6E8sCci9badyRkXb3JoRpBj5p8C6Tw41ELDZoiihKEtp",
+      "keyReceiverId": "ref.finance.near",
+      "keyMethodNames": [ "ft_swap" ],
+      "keyAllowance": "1000000000000000000000000"
+    }
+  ],
+  "accounts": ["alice.near"]
+}
+```
+
+the fields are:
+
+- `keyAction` - `add_key` or `delete_key`. it is **optional**, and
+  without it the transaction is an ordinary contract call.
+- `keyPublicKey` - the public key the action names. it is **required**
+  for a key action.
+- `keyReceiverId` - the contract the NEW key may call. it is
+  **required** for an `add_key` and is not used by a `delete_key`.
+- `keyMethodNames` - the methods the NEW key may call. it is only for
+  an `add_key`. an empty list means it may call every method of its
+  receiver.
+- `keyAllowance` - the yoctoNEAR ceiling on the NEW key. it is only
+  for an `add_key`, and it is a **STRING** because a yoctoNEAR amount
+  does not fit a json number safely when it is big.
+
+a key action may **not** carry a `contractId` or a `method`. it has
+nothing to call, so a contract on it says the request does not know
+what it is.
+
+> --- WHY --- THE TARGET ACCOUNT IS THE WHO LIST, OR THE CALLER'S OWN
+> ACCOUNT WHEN THE WHO LIST IS EMPTY. a public key does not say whose
+> key it is - the same key can be on ten accounts. the WHO list is the
+> queue's own list of who is waiting for it, and it is the only thing
+> that says whose account the key action is about. an agent that queues
+> a key action for itself names nobody, and then the account the key
+> belongs to is the account the api key belongs to.
+
+> --- WHY --- A DELETE IS CHECKED AGAINST THE CHAIN, AT QUEUE TIME. the
+> key's permission lives on chain, and only the chain knows it. a FULL
+> access key is the user's wallet - deleting it locks them out - so the
+> queue refuses to carry a delete for a key that is not a LIMITED one.
+> a LIMITED key is one whose permission is `FunctionCall` or
+> `GasKeyFunctionCall`: it may only call its receiver, and only its
+> methods. `FullAccess` and `GasKeyFullAccess` are NOT limited and are
+> refused, and so is a key the account does not hold at all.
+>
+> > --- WHY --- THE CHECK IS AGAINST EVERY NAMED ACCOUNT. a delete that
+> > names several accounts has to hold on every one of them. a key that
+> > is limited on alice and full access on bob is a full access key on
+> > bob, and the batch is refused.
+>
+> > --- WHY --- THE CHECK RUNS BEFORE THE WRITE. a refused request never
+> > leaves half of itself in the db.
+
+> --- WHY --- THE RPC URL IS AN ENV VAR. the chain is read over json-rpc,
+> and which node answers is a deployment's business. the variable is
+> `SHIT_1170_NEAR_RPC_URL`, and it defaults to
+> `https://rpc.mainnet.fastnear.com`.
+
 ### the answer
 
 `201` with the queued batch:
@@ -234,6 +344,11 @@ their feed before anyone has signed it.
       "argsBase64": null,
       "gas": "30000000000000",
       "deposit": "1",
+      "keyAction": null,
+      "keyPublicKey": null,
+      "keyReceiverId": null,
+      "keyMethodNames": null,
+      "keyAllowance": null,
       "accounts": [
         { "accountId": "alice.near", "status": "pending", "txHash": null },
         { "accountId": "bob.near", "status": "pending", "txHash": null }
@@ -270,6 +385,17 @@ the one-batch route or the list route.
 base64 for a call with raw bytes. the json `args` is the empty object
 for such a call - the bytes have no names.
 
+the five `key*` fields are **always** on the wire. they are `null` for
+an ordinary contract call, and they carry the key action for a key
+action transaction. a client reads one shape for every transaction, and
+a field that is sometimes missing is a field every client has to check
+for.
+
+for a key action, `contractId` and `method` are the **EMPTY STRING** -
+the db's columns are `NOT NULL` and nulling them would need a table
+rebuild. the empty string means "this is not a contract call", and
+`keyAction` says what it is.
+
 ### the errors
 
 - `401` - `no_api_key` when the header is missing, or
@@ -282,6 +408,20 @@ for such a call - the bytes have no names.
   `args_and_args_base64` when a call carried both kinds of args, or
   `account_not_named_by_agent` when the `accounts` list named an
   account the agent holds **no api key for** - the NAMING rule
+- `400` - the KEY ACTION errors:
+  - `bad_key_action` when `keyAction` was neither `add_key` nor
+    `delete_key`
+  - `no_key_public_key` when a key action named no public key
+  - `no_key_receiver_id` when an `add_key` named no receiver id
+  - `key_action_and_contract_call` when a transaction was a key action
+    AND a contract call at once
+  - `key_action_not_allowed` when a `delete_key` named a key that is
+    **not a limited key** on the account it is about - the message says
+    whether the key was not there at all or was a full access key
+  - `bad_key_public_key` when the public key was not a NEAR public key
+  - `bad_account_id` when the target account was not a NEAR account id
+- `503` - `chain_unreachable` when the chain could not be read, so the
+  key could not be checked
 - `500` - `db_unavailable`
 
 > --- WHY --- a SHORTER answer from the naming check means one of the
@@ -291,6 +431,17 @@ for such a call - the bytes have no names.
 
 > --- WHY --- every call is checked BEFORE anything is written. a batch
 > that is going to be refused never leaves half of itself in the db.
+
+> --- WHY --- A CHAIN THAT CANNOT BE READ IS A 503 AND NOT A 400. the
+> request was fine - the chain was not. and it is not a 500 either:
+> nothing broke, the app just could not answer right now, and the
+> client should come back.
+
+> --- WHY --- `key_action_not_allowed` IS ONE CODE FOR BOTH REFUSALS -
+> a key that is not there and a key that is full access. the MESSAGE
+> says which one it was, because they are different facts and the user
+> reads them differently. the code says the same thing to a client:
+> this delete may not be queued.
 
 ## THE GET
 

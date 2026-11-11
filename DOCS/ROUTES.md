@@ -53,6 +53,12 @@ user info, api key managmnets and the tx queue
   with an opaque cursor and filters by many accounts and many contracts
   at once. a queue is never done — the status lives on the account row.
   the `GET` list is OPEN and asks for NO api key.
+  a queued transaction is EITHER a contract call OR a KEY ACTION —
+  `add_key` or `delete_key` — so an agent can offer the user a limited
+  key or take one away. a `delete_key` is checked AGAINST THE CHAIN at
+  queue time: the queue refuses a delete for a key that is not a LIMITED
+  key on the account it is about, because a full access key is the
+  user's wallet.
 
   see [`ROUTES/shit-1170-tx-queue.md`](./ROUTES/shit-1170-tx-queue.md)
 

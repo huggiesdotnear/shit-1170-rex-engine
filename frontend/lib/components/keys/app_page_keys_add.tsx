@@ -35,6 +35,15 @@
 // &methods=swap` — so the reader arrives with the boxes already
 // holding what they meant.
 //
+// --- WHY THERE ARE TWO WAYS OUT: the ADD THE KEY button signs the
+// transaction right there, and the QUEUE THE KEY button puts it in the
+// feed for approval beside everything else that is waiting. the reader
+// chooses which one they want.
+//
+// --- WHY THE QUEUE IS A SEPARATE BUTTON AND NOT A MODE: a button that
+// changes what it does is a button the reader has to read twice. two
+// buttons say what they do.
+//
 // mounts into <div id="SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD">.
 import { render } from "preact";
 import { useState as use_state } from "preact/hooks";
@@ -42,6 +51,8 @@ import { SHIT_1170_MOUNT_ID } from "../../ts/shared/mount_ids";
 import { SHIT_1170_AUTH } from "../../ts/shared/auth_status";
 import { SHIT_1170_APP_PAGE_KEYS_STORE } from "../../ts/keys/app_page_keys_store";
 import { SHIT_1170_APP_PAGE_KEYS_ADD } from "../../ts/keys/app_page_keys_add";
+import { shit_1170_app_page_keys_queue_add_fun } from "../../ts/keys/app_page_keys_queue_add";
+import { SHIT_1170_KEY_VAULT } from "../../ts/keys/app_page_keys_vault";
 import { SHIT_1170_APP_PAGE_KEYS_ACCOUNT_ID } from "../../ts/keys/app_page_keys_account_id";
 import { SHIT_1170_APP_PAGE_KEYS_ALLOWANCE } from "../../ts/keys/app_page_keys_allowance";
 import { SHIT_1170_APP_PAGE_KEYS_URL } from "../../ts/keys/app_page_keys_url";
@@ -81,6 +92,9 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD_FUN() {
     SHIT_1170_APP_PAGE_KEYS_URL.read_allowance() ?? "",
   );
   const [adding, set_adding] = use_state(false);
+  // true while the key is being put in the queue, so the queue button
+  // says WORKING and stays off.
+  const [queuing, set_queuing] = use_state(false);
   // the pair the reader is shown BEFORE they approve anything.
   //
   // --- WHY IT IS MADE ON PAGE LOAD AND NOT BY A BUTTON: the key is
@@ -172,6 +186,75 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD_FUN() {
       if (result !== null) set_error(result);
     } finally {
       set_adding(false);
+    }
+  };
+
+  // put the key in the queue, so the reader approves it in the feed.
+  //
+  // --- WHY THE PRIVATE KEY IS SAVED BEFORE THE QUEUE GOES OUT: the key
+  // is not on the chain yet, and the feed only knows the PUBLIC key. the
+  // private key exists in this browser and nowhere else, so it is kept
+  // in the browser's own record now — otherwise the reader approves the
+  // key in the feed and has no secret to sign with it.
+  const queue_fun = async () => {
+    if (queuing) return;
+    if (!receiver_ok) {
+      set_error("THE ACCOUNT THE KEY CALLS IS NOT A NEAR ACCOUNT ID");
+      return;
+    }
+    set_queuing(true);
+    set_error(null);
+    try {
+      const account_id = SHIT_1170_AUTH.get_account_id();
+      if (account_id === null) {
+        set_error("YOU ARE NOT SIGNED IN");
+        return;
+      }
+      const outcome = await shit_1170_app_page_keys_queue_add_fun(
+        pair.public_key,
+        receiver,
+        method_names,
+        allowance_yocto,
+      );
+      if (outcome.error !== null) {
+        set_error(outcome.error);
+        SHIT_1170_TOAST_STORE.show(
+          "error",
+          "COULD NOT QUEUE THE KEY",
+          outcome.error,
+          null,
+        );
+        return;
+      }
+      await SHIT_1170_KEY_VAULT.put({
+        id: pair.public_key,
+        account_id,
+        public_key: pair.public_key,
+        secret_key: pair.secret_key,
+        receiver_id: receiver,
+        method_names,
+        allowance_yocto,
+        // --- WHY --- THE KEY IS MARKED AS QUEUED: it is not on the chain
+        // yet, and the list has to say QUEUED and not REMOVED.
+        queued: true,
+        created_at: Date.now(),
+      });
+      // --- WHY A FRESH KEY AFTER A QUEUE: the key that was just queued
+      // is on its way to the chain, and showing the same pair again would
+      // offer the reader the same key twice. a fresh one is on screen and
+      // ready for the next key.
+      set_pair(SHIT_1170_APP_PAGE_KEYS_ADD.make_pair());
+      set_receiver_id("");
+      set_methods("");
+      set_allowance("");
+      SHIT_1170_TOAST_STORE.show(
+        "success",
+        "KEY QUEUED",
+        "APPROVE IT IN THE FEED — THE PRIVATE KEY IS SAVED IN THIS BROWSER",
+        null,
+      );
+    } finally {
+      set_queuing(false);
     }
   };
 
@@ -299,20 +382,40 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD_FUN() {
         </div>
       </div>
 
-      <button
-        type="button"
-        disabled={adding || busy || !receiver_ok}
-        onClick={() => {
-          void add_fun();
-        }}
-        title={
-          receiver_ok
-            ? "add this key to the account"
-            : "the account the key calls is not an account id"
-        }
-      >
-        {adding ? "WORKING…" : "ADD THE KEY"}
-      </button>
+      <div class="keys-actions">
+        <button
+          type="button"
+          disabled={adding || queuing || busy || !receiver_ok}
+          onClick={() => {
+            void add_fun();
+          }}
+          title={
+            receiver_ok
+              ? "add this key to the account now"
+              : "the account the key calls is not an account id"
+          }
+        >
+          {adding ? "WORKING…" : "ADD THE KEY"}
+        </button>
+        {/* --- WHY --- THE QUEUE BUTTON IS BESIDE THE ADD BUTTON AND NOT
+            UNDER IT: the two are two ways out of the same form, and the
+            reader picks one. */}
+        <button
+          type="button"
+          class="keys-clear"
+          disabled={adding || queuing || busy || !receiver_ok}
+          onClick={() => {
+            void queue_fun();
+          }}
+          title={
+            receiver_ok
+              ? "put this key in the feed for approval"
+              : "the account the key calls is not an account id"
+          }
+        >
+          {queuing ? "WORKING…" : "QUEUE THE KEY"}
+        </button>
+      </div>
 
       {error !== null && <p class="keys-note is-error">{error}</p>}
     </div>

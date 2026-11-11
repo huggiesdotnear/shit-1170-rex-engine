@@ -22,7 +22,9 @@ the db holds SIX tables of its own:
   WHAT, the WHEN, the WHY and the WHEN_AT of the batch.
 - `tx_queue_transactions` — one row per transaction inside a batch. it
   holds the HOW: the contract, the method, the args, the gas and the
-  deposit, and the `position` that says the order.
+  deposit, and the `position` that says the order. a transaction may
+  also be a KEY ACTION — `add_key` or `delete_key` — and then the five
+  `key_*` columns say which key it acts on.
 - `tx_queue_accounts` — one row per account, per transaction. this is
   the WHO of a batch, and it is the ONLY place a status lives.
 - `swap_queue` — one row per queued SWAP. it holds the token in, the
@@ -51,6 +53,12 @@ a QUEUE  (queue_id)          what / when / why
   └── a TRANSACTION          contract_id / method / args / gas / deposit
         └── an ACCOUNT ROW    account_id / status / tx_hash
 ```
+
+a transaction is EITHER a contract call OR a key action. a key action
+has no contract and no method, so its `contract_id` and `method` are the
+EMPTY STRING — the columns are `NOT NULL` and nulling them would need a
+table rebuild. the `key_action` column is what says which kind of row
+it is.
 
 a queue is a BATCH, not one transaction. the agent queues a swap, and
 that swap needs three function calls — a deposit, the swap itself, and a

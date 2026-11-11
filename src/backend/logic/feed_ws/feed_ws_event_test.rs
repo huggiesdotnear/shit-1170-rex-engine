@@ -29,6 +29,11 @@ fn one_queue_item_fun() -> TX_QUEUE_ITEM {
             args_base64: None,
             gas: Some("30000000000000".to_string()),
             deposit: Some("1".to_string()),
+            key_action: None,
+            key_public_key: None,
+            key_receiver_id: None,
+            key_method_names: None,
+            key_allowance: None,
             accounts: vec![TX_QUEUE_ACCOUNT {
                 account_id: "alice.near".to_string(),
                 status: "pending".to_string(),

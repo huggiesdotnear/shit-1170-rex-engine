@@ -14,11 +14,18 @@
 // path is a url and a path piece with a slash in it would change the
 // route the request lands on.
 //
+// --- WHY --- EVERY TRANSACTION IN THE BATCH IS CHECKED: a queued
+// transaction is EITHER a contract call OR a key action, and the backend
+// always sends the `keyAction` fields. a transaction that arrives
+// without them, or with a `keyAction` that is some other word, is not
+// one of ours.
+//
 // 404 = there is no queue with that id. the error is thrown like any
 // other.
 // ========================================
 
 import { api_call } from "../stuff/api_call";
+import { tx_queue_valid_fun } from "../stuff/tx_queue_valid_fun";
 import type { REQUEST_OPTIONS } from "../stuff/request_options";
 import type { SHIT_1170_TX_QUEUE } from "../types/shit_1170_tx_queue";
 
@@ -44,15 +51,9 @@ export async function api_shit_1170_tx_queue_one_get(
     fallback: "api_shit_1170_tx_queue_one_get failed",
   });
 
-  if (
-    typeof json !== "object" ||
-    json === null ||
-    Array.isArray(json) ||
-    typeof json.queueId !== "string" ||
-    !Array.isArray(json.transactions)
-  ) {
+  if (!tx_queue_valid_fun(json)) {
     throw new Error(
-      "api_shit_1170_tx_queue_one_get failed: invalid_response: expected a json object with a queueId and a transactions array",
+      "api_shit_1170_tx_queue_one_get failed: invalid_response: expected a json object with a queueId and a transactions array, and every transaction must carry its keyAction fields",
     );
   }
 

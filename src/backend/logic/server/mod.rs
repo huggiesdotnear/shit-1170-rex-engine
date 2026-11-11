@@ -10,6 +10,7 @@ pub mod shit_1170_banner_fun;
 pub mod shit_1170_host_fun;
 pub mod shit_1170_local_ips_fun;
 pub mod shit_1170_port_fun;
+pub mod shit_1170_rpc_url_fun;
 // ========================================
 // copyright 2026 by sleet.near
 // ========================================

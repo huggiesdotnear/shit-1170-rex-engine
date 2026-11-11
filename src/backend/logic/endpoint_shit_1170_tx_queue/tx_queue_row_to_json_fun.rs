@@ -24,6 +24,7 @@
 // truth — so the row with the hash wins.
 use crate::backend::logic::endpoint_shit_1170_tx_queue::tx_queue_accounts_store::TX_QUEUE_ACCOUNT_ROW;
 use crate::backend::logic::endpoint_shit_1170_tx_queue::tx_queue_args_fun::tx_queue_args_to_json_fun;
+use crate::backend::logic::endpoint_shit_1170_tx_queue::tx_queue_key_method_names_fun::tx_queue_key_method_names_to_json_fun;
 use crate::backend::logic::endpoint_shit_1170_tx_queue::tx_queue_store::TX_QUEUE_ROW;
 use crate::backend::logic::endpoint_shit_1170_tx_queue::tx_queue_transactions_store::TX_QUEUE_TRANSACTION_ROW;
 use crate::backend::types::tx_queue_request::{
@@ -57,6 +58,11 @@ pub fn tx_queue_row_to_json_fun(
     for transaction in transactions {
         let args = tx_queue_args_to_json_fun(&transaction.args)?;
 
+        // the method names of a key action. they ride as a list on the
+        // wire, and the column holds them as a json array string.
+        let key_method_names =
+            tx_queue_key_method_names_to_json_fun(transaction.key_method_names.as_deref())?;
+
         // the accounts under THIS transaction.
         let own_accounts: Vec<&TX_QUEUE_ACCOUNT_ROW> = accounts
             .iter()
@@ -72,6 +78,11 @@ pub fn tx_queue_row_to_json_fun(
             args_base64: transaction.args_base64.clone(),
             gas: transaction.gas.clone(),
             deposit: transaction.deposit.clone(),
+            key_action: transaction.key_action.clone(),
+            key_public_key: transaction.key_public_key.clone(),
+            key_receiver_id: transaction.key_receiver_id.clone(),
+            key_method_names,
+            key_allowance: transaction.key_allowance.clone(),
             accounts: own_accounts
                 .iter()
                 .map(|account| account_to_json_fun(account))

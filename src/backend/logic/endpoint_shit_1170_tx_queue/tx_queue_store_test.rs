@@ -104,6 +104,11 @@ async fn make_queue_fun(
         None,
         Some("30000000000000"),
         Some("1"),
+        None,
+        None,
+        None,
+        None,
+        None,
     )
     .await
     .expect("the transaction should save");
@@ -221,6 +226,11 @@ async fn the_transactions_of_a_batch_come_back_in_position_order() {
             None,
             None,
             None,
+            None,
+            None,
+            None,
+            None,
+            None,
         )
         .await
         .expect("the transaction should save");
@@ -270,6 +280,11 @@ async fn the_args_json_round_trips() {
         "ref.finance.near",
         "ft_swap",
         &column,
+        None,
+        None,
+        None,
+        None,
+        None,
         None,
         None,
         None,
@@ -743,6 +758,11 @@ async fn a_contract_filter_matches_a_queue_holding_any_transaction_for_it() {
             contract_id,
             "ft_transfer",
             "{}",
+            None,
+            None,
+            None,
+            None,
+            None,
             None,
             None,
             None,
