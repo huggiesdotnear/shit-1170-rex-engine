@@ -145,3 +145,57 @@
   max-width: 100%;
 }
 /*==================================*/
+/* a key the chain no longer has. it is dimmed, because it is NOT on
+   the account — the reader must not read it as one that is. */
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST .keys-row.is-removed {
+  opacity: 0.55;
+  border-style: dashed;
+}
+/*==================================*/
+/* the private key block: the reveal button, the secret, and the three
+   buttons under it. */
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST .keys-secret {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+}
+/*==================================*/
+/* the secret itself. it is darker than the rest of the card because it
+   is the one thing here that must not be read over a shoulder. */
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST .keys-secret-key {
+  display: block;
+  padding: 8px 10px;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 11px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  text-align: left;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 8px;
+}
+/*==================================*/
+/* the reveal button and the three buttons under the secret. */
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST .keys-reveal,
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST .keys-secret-actions button {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 7px 12px;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+}
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST .keys-secret-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+#SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST .keys-secret-actions button {
+  flex: 1 1 30%;
+  width: auto;
+}
+/*==================================*/

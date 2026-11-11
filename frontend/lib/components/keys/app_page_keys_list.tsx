@@ -13,6 +13,16 @@
 // teammate, and it is safe to throw away — which is exactly what the
 // reader needs when a bot is gone or a key leaked.
 //
+// --- WHY A KEY THE CHAIN NO LONGER HAS IS STILL ON THE PAGE: this
+// browser may hold its private key, and the reader still wants to know
+// what it was for. it is marked REMOVED, so a key that is not on the
+// account is never mistaken for one that is.
+//
+// --- WHY THE PRIVATE KEY IS BEHIND A REVEAL: it is on the screen
+// whenever the list is open otherwise, and a secret that is always
+// visible is a secret that gets read over someone's shoulder or
+// captured in a screenshot of the page. the reader asks for it.
+//
 // mounts into <div id="SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST">.
 import { render } from "preact";
 import { useState as use_state } from "preact/hooks";
@@ -55,6 +65,9 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST_FUN() {
   const picked = SHIT_1170_APP_PAGE_KEYS_STORE.get_picked();
   const busy = SHIT_1170_APP_PAGE_KEYS_STORE.is_busy();
   const [removing, set_removing] = use_state(false);
+  // the keys whose private key is on screen. one entry per key, so
+  // revealing one does not reveal the others.
+  const [revealed, set_revealed] = use_state<ReadonlyArray<string>>([]);
 
   if (account_id === null) {
     return (
@@ -63,6 +76,27 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST_FUN() {
       </div>
     );
   }
+
+  const reveal_fun = (public_key: string) => {
+    set_revealed((current) =>
+      current.includes(public_key)
+        ? current.filter((key) => key !== public_key)
+        : [...current, public_key],
+    );
+  };
+
+  const copy_fun = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      SHIT_1170_TOAST_STORE.show("success", "COPIED", "");
+    } catch {
+      SHIT_1170_TOAST_STORE.show(
+        "error",
+        "COULD NOT COPY",
+        "SELECT THE TEXT AND COPY IT BY HAND",
+      );
+    }
+  };
 
   const remove_fun = async () => {
     if (removing || picked.length === 0) return;
@@ -78,6 +112,7 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST_FUN() {
             "success",
             "KEYS REMOVED",
             `${outcome.removed} KEY${outcome.removed === 1 ? "" : "S"} GONE`,
+            outcome.tx_hash,
           );
           return null;
         },
@@ -92,6 +127,15 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST_FUN() {
     } finally {
       set_removing(false);
     }
+  };
+
+  const forget_fun = async (public_key: string) => {
+    await SHIT_1170_APP_PAGE_KEYS_STORE.forget(public_key);
+    SHIT_1170_TOAST_STORE.show(
+      "success",
+      "FORGOTTEN",
+      "THE PRIVATE KEY IS GONE",
+    );
   };
 
   if (state === null) {
@@ -140,15 +184,22 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST_FUN() {
           </p>
           {limited.map((row) => {
             const is_picked = picked.includes(row.public_key);
+            const is_revealed = revealed.includes(row.public_key);
+            // --- WHY A REMOVED KEY CANNOT BE PICKED: it is not on the
+            // account, so there is nothing on the chain to remove. the
+            // FORGET button is what takes it out of the record.
+            const can_pick = !row.removed;
             return (
               <label
-                class={`keys-row is-limited${is_picked ? " is-picked" : ""}`}
+                class={`keys-row is-limited${is_picked ? " is-picked" : ""}${
+                  row.removed ? " is-removed" : ""
+                }`}
                 key={row.public_key}
               >
                 <input
                   type="checkbox"
                   checked={is_picked}
-                  disabled={busy}
+                  disabled={busy || !can_pick}
                   onChange={() => {
                     SHIT_1170_APP_PAGE_KEYS_STORE.toggle_pick(row);
                   }}
@@ -156,9 +207,14 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST_FUN() {
                 <div class="keys-row-body">
                   <div class="keys-row-head">
                     <span class="keys-kind">
+                      {row.removed ? "REMOVED — " : ""}
                       {row.receiver_id ?? "NO CONTRACT"}
                     </span>
-                    <span class="keys-nonce">NONCE {row.nonce}</span>
+                    <span class="keys-nonce">
+                      {row.removed
+                        ? "NOT ON THE ACCOUNT"
+                        : `NONCE ${row.nonce}`}
+                    </span>
                   </div>
                   <code class="keys-public-key">{row.public_key}</code>
                   <p class="keys-detail">
@@ -167,6 +223,56 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST_FUN() {
                   <p class="keys-detail">
                     ALLOWANCE: {allowance_text_fun(row.allowance)}
                   </p>
+
+                  {row.secret_key !== null && (
+                    <div class="keys-secret">
+                      {is_revealed ? (
+                        <>
+                          <code class="keys-secret-key">{row.secret_key}</code>
+                          <div class="keys-secret-actions">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                void copy_fun(row.secret_key as string);
+                              }}
+                            >
+                              COPY
+                            </button>
+                            <button
+                              type="button"
+                              class="keys-clear"
+                              onClick={() => {
+                                reveal_fun(row.public_key);
+                              }}
+                            >
+                              HIDE
+                            </button>
+                            <button
+                              type="button"
+                              class="keys-clear"
+                              disabled={busy}
+                              onClick={() => {
+                                void forget_fun(row.public_key);
+                              }}
+                            >
+                              FORGET
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          class="keys-reveal"
+                          disabled={busy}
+                          onClick={() => {
+                            reveal_fun(row.public_key);
+                          }}
+                        >
+                          SHOW THE PRIVATE KEY
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </label>
             );

@@ -53,6 +53,20 @@ export interface SHIT_1170_APP_PAGE_KEYS_ROW {
   allowance: string | null;
   // the nonce of the key, so the reader can see the key has been used.
   nonce: number;
+  // the private key, when THIS BROWSER holds it.
+  //
+  // --- WHY THE SECRET IS ON THE ROW: the row IS the list on the page,
+  // and the secret is what the reader came for. a separate map would
+  // mean a second lookup for every row on every render.
+  secret_key: string | null;
+  // true when the chain no longer has this key — it was removed from
+  // the account, or the browser's record outlived it.
+  //
+  // --- WHY A REMOVED KEY IS STILL ON THE PAGE: the browser holds its
+  // private key and its details, so the reader can still see what they
+  // once had and what it was for. a key that vanishes from the list
+  // the moment it leaves the chain takes that knowledge with it.
+  removed: boolean;
 }
 // ========================================
 // the page's data: the rows and what went wrong.
@@ -96,6 +110,8 @@ function rows_from_access_keys_fun(
         method_names: [],
         allowance: null,
         nonce,
+        secret_key: null,
+        removed: false,
       });
       continue;
     }
@@ -112,6 +128,8 @@ function rows_from_access_keys_fun(
       method_names: details.method_names,
       allowance: details.allowance,
       nonce,
+      secret_key: null,
+      removed: false,
     });
   }
 
@@ -155,9 +173,86 @@ function read_limited_permission_fun(permission: unknown): {
   return { receiver_id, method_names, allowance };
 }
 // ========================================
+// --- MERGE -----------------------------
+// fold the browser's record into the chain's list.
+//
+// --- WHY THE CHAIN DECIDES WHAT EXISTS: the chain is the account. a
+// row is "on the chain" when the chain says it is, and the browser's
+// record can only ADD to that — it can never say a key is still there.
+//
+// --- WHY A STORED KEY THE CHAIN DOES NOT HAVE IS MARKED AND KEPT:
+// the reader's private key and the key's details are still theirs, and
+// a key that left the chain is exactly the kind of key the reader
+// wants to know about — it is either already gone or a leftover to
+// clean up. so it stays on the page, marked REMOVED.
+//
+// --- WHY A STORED KEY MERGES INTO ITS CHAIN ROW AND NOT BESIDE IT:
+// one row per key. a key that is both on the chain and stored gets the
+// chain's facts — its nonce, its allowance — AND the browser's secret,
+// because they are two facts about one key.
+function merge_vault_fun(
+  chain_rows: ReadonlyArray<SHIT_1170_APP_PAGE_KEYS_ROW>,
+  vault_rows: ReadonlyArray<{
+    public_key: string;
+    secret_key: string | null;
+    receiver_id: string;
+    method_names: string[];
+  }>,
+): SHIT_1170_APP_PAGE_KEYS_ROW[] {
+  const by_public_key = new Map<
+    string,
+    {
+      secret_key: string | null;
+      receiver_id: string;
+      method_names: string[];
+    }
+  >();
+  for (const row of vault_rows) {
+    by_public_key.set(row.public_key, {
+      secret_key: row.secret_key,
+      receiver_id: row.receiver_id,
+      method_names: row.method_names,
+    });
+  }
+
+  const merged: SHIT_1170_APP_PAGE_KEYS_ROW[] = chain_rows.map((row) => {
+    const stored = by_public_key.get(row.public_key);
+    if (stored === undefined) return row;
+    return {
+      ...row,
+      secret_key: stored.secret_key,
+      // the chain is the truth about the contract and the methods, so
+      // they are only filled in from the record when the chain has
+      // nothing to say.
+      receiver_id: row.receiver_id ?? stored.receiver_id,
+      method_names:
+        row.method_names.length > 0 ? row.method_names : stored.method_names,
+    };
+  });
+
+  // the stored keys the chain does not have.
+  const chain_public_keys = new Set(chain_rows.map((row) => row.public_key));
+  for (const row of vault_rows) {
+    if (chain_public_keys.has(row.public_key)) continue;
+    merged.push({
+      public_key: row.public_key,
+      full_access: false,
+      receiver_id: row.receiver_id,
+      method_names: row.method_names,
+      allowance: null,
+      nonce: 0,
+      secret_key: row.secret_key,
+      removed: true,
+    });
+  }
+
+  return merged;
+}
+// ========================================
 // --- PUBLIC ---------------------------
 export const SHIT_1170_APP_PAGE_KEYS_ROWS = {
   rows_from_access_keys: rows_from_access_keys_fun,
+  merge_vault: merge_vault_fun,
 };
 // ========================================
 // copyright 2026 by sleet.near

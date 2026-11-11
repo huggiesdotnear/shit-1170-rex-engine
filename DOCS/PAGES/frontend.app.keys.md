@@ -4,6 +4,8 @@ the page shows the access keys of the signed-in account — the full access keys
 
 the full access keys are shown at the top of the list and are never pickable: a full access key IS the account, so removing it locks the reader out of their own account.
 
+the list always comes fresh from the chain. the browser's own record of the keys it made is folded in on top: the private key of a limited key is kept in the browser's own indexeddb, so the reader can come back for it, and a stored key the chain no longer has stays on the page marked REMOVED rather than vanishing.
+
 ```html
 <body>
   <!--==========================================-->

@@ -88,7 +88,8 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD_FUN() {
           SHIT_1170_TOAST_STORE.show(
             "success",
             "KEY ADDED",
-            "COPY THE PRIVATE KEY NOW",
+            "THE PRIVATE KEY IS SAVED IN THIS BROWSER TOO",
+            outcome.tx_hash,
           );
           return null;
         },
@@ -116,8 +117,8 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD_FUN() {
     <div class="keys-add">
       <h3 class="keys-group">ADD A LIMITED KEY</h3>
       <p class="keys-note">
-        A LIMITED KEY CAN ONLY CALL ONE CONTRACT. THE PRIVATE KEY IS SHOWN ONCE
-        AND NEVER STORED HERE.
+        A LIMITED KEY CAN ONLY CALL ONE CONTRACT. THE PRIVATE KEY IS SHOWN HERE
+        AND SAVED IN THIS BROWSER, SO YOU CAN COME BACK FOR IT.
       </p>
 
       <label class="keys-field">
@@ -161,7 +162,8 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD_FUN() {
       {made_key !== null && (
         <div class="keys-made">
           <p class="keys-note">
-            THE PRIVATE KEY IS BELOW. TAKE IT NOW — IT IS NOT SHOWN AGAIN.
+            THE PRIVATE KEY IS BELOW. COPY IT — IT IS ALSO SAVED IN THIS
+            BROWSER, UNDER THE KEY LIST.
           </p>
           <p class="keys-detail">PUBLIC KEY</p>
           <code class="keys-public-key">{made_key.public_key}</code>
@@ -189,7 +191,7 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD_FUN() {
                 set_made_key(null);
               }}
             >
-              I TOOK IT
+              CLOSE
             </button>
           </div>
         </div>

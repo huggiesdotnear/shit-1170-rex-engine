@@ -12,6 +12,7 @@
 // shared state, so it belongs here with the rest of it.
 import { SHIT_1170_APP_PAGE_KEYS } from "./app_page_keys_load";
 import { SHIT_1170_AUTH } from "../shared/auth_status";
+import { SHIT_1170_KEY_VAULT } from "./app_page_keys_vault";
 import type {
   SHIT_1170_APP_PAGE_KEYS_DATA,
   SHIT_1170_APP_PAGE_KEYS_ROW,
@@ -158,6 +159,33 @@ function app_page_keys_store_watch_fun(): void {
 }
 // ========================================
 // ========================================
+// --- FORGET ----------------------------
+// drop one key from the browser's record.
+//
+// --- WHY FORGETTING IS ITS OWN ACTION AND NOT PART OF THE REMOVAL:
+// the removal takes the key off the CHAIN, and it leaves the record
+// alone — the record holds the reader's private key, and the reader may
+// still want it. forgetting is the reader saying they want the secret
+// gone from this browser, and that is a different decision from taking
+// the key off the account.
+//
+// --- WHY FORGETTING DOES NOT TOUCH THE CHAIN: the key on the chain is
+// not this browser's to remove. the reader removes it with the REMOVE
+// button, and forgets it with this one.
+async function forget_fun(public_key: string): Promise<void> {
+  if (busy) return;
+  busy = true;
+  notify_fun();
+  try {
+    await SHIT_1170_KEY_VAULT.forget(public_key);
+    await app_page_keys_store_load_fun();
+  } finally {
+    busy = false;
+    notify_fun();
+  }
+}
+// ========================================
+// ========================================
 // --- READ ------------------------------
 function get_fun(): SHIT_1170_APP_PAGE_KEYS_DATA | null {
   return data;
@@ -182,6 +210,7 @@ export const SHIT_1170_APP_PAGE_KEYS_STORE = {
   clear_picked: clear_picked_fun,
   get_picked: get_picked_fun,
   run_action: run_action_fun,
+  forget: forget_fun,
   watch: app_page_keys_store_watch_fun,
 };
 // ========================================

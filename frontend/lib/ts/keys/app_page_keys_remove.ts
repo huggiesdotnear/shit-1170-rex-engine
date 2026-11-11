@@ -11,8 +11,18 @@
 // check is here anyway. a full-access key IS the account, and removing
 // it locks the reader out of their own account. the check is cheap and
 // the consequence of getting it wrong is severe.
-import { near_kit_client } from "@near-kit-tool-box/web";
+//
+// --- WHY THE BROWSER'S RECORD SURVIVES THE REMOVAL: the record holds
+// the reader's private key. taking the key off the chain does not take
+// the secret away — the reader may still want it, and the record is the
+// only place it is. so a removal leaves the record alone, and the
+// FORGET button is what erases it.
+//
+// --- WHY THE TRANSACTION IS BUILT BY HAND AND NOT BY NEAR KIT: the
+// whole story is in app_page_keys_wallet_action.ts.
+import { near_connect_client } from "@near-kit-tool-box/web";
 import { SHIT_1170_AUTH } from "../shared/auth_status";
+import { shit_1170_wallet_delete_keys_fun } from "./app_page_keys_wallet_action";
 // ========================================
 // ========================================
 // --- TYPES ------------------------------
@@ -24,6 +34,8 @@ export interface SHIT_1170_APP_PAGE_KEYS_REMOVE_RESULT {
   error: string | null;
   // true when the reader declined the wallet popup.
   declined: boolean;
+  // the hash of the transaction that removed the keys.
+  tx_hash: string | null;
 }
 // ========================================
 // ========================================
@@ -46,6 +58,15 @@ function is_declined_fun(err: unknown): boolean {
   );
 }
 // ========================================
+// the hash of a wallet outcome.
+function outcome_hash_fun(outcome: unknown): string | null {
+  if (typeof outcome !== "object" || outcome === null) return null;
+  const transaction = (outcome as { transaction?: unknown }).transaction;
+  if (typeof transaction !== "object" || transaction === null) return null;
+  const hash = (transaction as { hash?: unknown }).hash;
+  return typeof hash === "string" ? hash : null;
+}
+// ========================================
 // ========================================
 // --- REMOVE ----------------------------
 // delete every picked key.
@@ -59,19 +80,40 @@ async function remove_keys_fun(
 ): Promise<SHIT_1170_APP_PAGE_KEYS_REMOVE_RESULT> {
   const account_id = SHIT_1170_AUTH.get_account_id();
   if (account_id === null) {
-    return { removed: 0, error: "YOU ARE NOT SIGNED IN", declined: false };
+    return {
+      removed: 0,
+      error: "YOU ARE NOT SIGNED IN",
+      declined: false,
+      tx_hash: null,
+    };
   }
   if (public_keys.length === 0) {
-    return { removed: 0, error: "NO KEYS PICKED", declined: false };
+    return {
+      removed: 0,
+      error: "NO KEYS PICKED",
+      declined: false,
+      tx_hash: null,
+    };
   }
 
   try {
-    const builder = near_kit_client().transaction(account_id);
-    for (const public_key of public_keys) {
-      builder.deleteKey(account_id, public_key);
-    }
-    await builder.send();
-    return { removed: public_keys.length, error: null, declined: false };
+    const connector = near_connect_client();
+    const wallet = await connector.wallet();
+    const transaction = shit_1170_wallet_delete_keys_fun(
+      account_id,
+      public_keys,
+    );
+    const outcomes = (await wallet.signAndSendTransactions({
+      signerId: account_id,
+      network: connector.network,
+      transactions: [transaction],
+    })) as ReadonlyArray<unknown>;
+    return {
+      removed: public_keys.length,
+      error: null,
+      declined: false,
+      tx_hash: outcome_hash_fun(outcomes[0]),
+    };
   } catch (err) {
     return {
       removed: 0,
@@ -81,6 +123,7 @@ async function remove_keys_fun(
           ? err.message
           : String(err),
       declined: is_declined_fun(err),
+      tx_hash: null,
     };
   }
 }

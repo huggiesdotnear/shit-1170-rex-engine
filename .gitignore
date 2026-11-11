@@ -31,4 +31,16 @@ node_modules
 # signs with. a test that catches the list putting it in the wrong
 # place, or making it pickable, is not scratch.
 !frontend/lib/ts/keys/app_page_keys_types.test.ts
+
+# --- WHY THIS ONE IS TRACKED ---
+# this test pins the WALLET ACTION SHAPE the keys page hands to the
+# wallet for an AddKey and a DeleteKey. the shape decides whether the
+# reader SEES what they are approving: near-connect hands an action
+# through untouched when it already carries a `type`, and near-kit
+# produces exactly such an action with the BORSH permission where the
+# connector wants the flat one. the wallet then cannot say what the key
+# is for and shows NO TRANSACTION PREVIEW — the transaction still goes
+# out, silently, unread. a test that catches the shape drifting is not
+# scratch — it is the thing that keeps the reader's approval meaningful.
+!frontend/lib/ts/keys/app_page_keys_wallet_action.test.ts
 /.openchamber

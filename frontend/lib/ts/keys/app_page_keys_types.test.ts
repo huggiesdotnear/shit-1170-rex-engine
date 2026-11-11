@@ -131,5 +131,75 @@ describe("the keys page's rows", () => {
   });
 });
 // ========================================
+// --- THE MERGE ------------------------
+describe("the keys page's merge of the chain and the record", () => {
+  test("a stored key on the chain gets the chain's facts AND the secret", () => {
+    const chain = SHIT_1170_APP_PAGE_KEYS_ROWS.rows_from_access_keys({
+      keys: [LIMITED_KEY],
+    });
+    const merged = SHIT_1170_APP_PAGE_KEYS_ROWS.merge_vault(chain, [
+      {
+        public_key: "ed25519:limited1",
+        secret_key: "ed25519:SECRET",
+        receiver_id: "contract.near",
+        method_names: ["method_one"],
+      },
+    ]);
+    expect(merged.length).toBe(1);
+    expect(merged[0].secret_key).toBe("ed25519:SECRET");
+    expect(merged[0].removed).toBe(false);
+    // the chain's own facts are kept.
+    expect(merged[0].nonce).toBe(5);
+    expect(merged[0].allowance).toBe("1000");
+  });
+
+  test("a stored key the chain does NOT have stays on the page, marked", () => {
+    const chain = SHIT_1170_APP_PAGE_KEYS_ROWS.rows_from_access_keys({
+      keys: [FULL_ACCESS_KEY],
+    });
+    const merged = SHIT_1170_APP_PAGE_KEYS_ROWS.merge_vault(chain, [
+      {
+        public_key: "ed25519:gone",
+        secret_key: "ed25519:SECRET",
+        receiver_id: "contract.near",
+        method_names: ["method_one"],
+      },
+    ]);
+    expect(merged.length).toBe(2);
+    const stored = merged.find((row) => row.public_key === "ed25519:gone");
+    expect(stored).toBeDefined();
+    expect(stored?.removed).toBe(true);
+    expect(stored?.secret_key).toBe("ed25519:SECRET");
+    expect(stored?.receiver_id).toBe("contract.near");
+    // the full access key is still first.
+    expect(merged[0].full_access).toBe(true);
+  });
+
+  test("a chain key with no stored secret has NO secret", () => {
+    const chain = SHIT_1170_APP_PAGE_KEYS_ROWS.rows_from_access_keys({
+      keys: [LIMITED_KEY],
+    });
+    const merged = SHIT_1170_APP_PAGE_KEYS_ROWS.merge_vault(chain, []);
+    expect(merged[0].secret_key).toBe(null);
+    expect(merged[0].removed).toBe(false);
+  });
+
+  test("the record never says a key is still on the chain", () => {
+    const chain = SHIT_1170_APP_PAGE_KEYS_ROWS.rows_from_access_keys({
+      keys: [],
+    });
+    const merged = SHIT_1170_APP_PAGE_KEYS_ROWS.merge_vault(chain, [
+      {
+        public_key: "ed25519:gone",
+        secret_key: null,
+        receiver_id: "contract.near",
+        method_names: [],
+      },
+    ]);
+    expect(merged.length).toBe(1);
+    expect(merged[0].removed).toBe(true);
+  });
+});
+// ========================================
 // copyright 2026 by sleet.near
 // ========================================

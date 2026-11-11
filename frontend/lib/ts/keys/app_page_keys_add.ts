@@ -11,9 +11,16 @@
 // somebody else — a bot, a script, a teammate — because it cannot move
 // the account's funds and cannot touch anything else. a full-access key
 // is the account itself, and this page never makes one.
+//
+// --- WHY THE TRANSACTION IS BUILT BY HAND AND NOT BY NEAR KIT: the
+// wallet cannot draw a preview of near-kit's AddKey, because near-kit
+// hands the wallet the borsh permission where the wallet wants the
+// flat one. the whole story is in app_page_keys_wallet_action.ts.
 import { generateKey } from "near-kit";
-import { near_kit_client } from "@near-kit-tool-box/web";
+import { near_connect_client } from "@near-kit-tool-box/web";
 import { SHIT_1170_AUTH } from "../shared/auth_status";
+import { SHIT_1170_KEY_VAULT } from "./app_page_keys_vault";
+import { shit_1170_wallet_add_key_fun } from "./app_page_keys_wallet_action";
 // ========================================
 // ========================================
 // --- TYPES ------------------------------
@@ -21,7 +28,7 @@ import { SHIT_1170_AUTH } from "../shared/auth_status";
 export interface SHIT_1170_APP_PAGE_KEYS_ADD_RESULT {
   // the new key's public key.
   public_key: string;
-  // the new key's private key — the ONE time the reader sees it.
+  // the new key's private key — the ONLY copy.
   secret_key: string;
   // the contract the key may call.
   receiver_id: string;
@@ -29,6 +36,11 @@ export interface SHIT_1170_APP_PAGE_KEYS_ADD_RESULT {
   method_names: string[];
   // the message for the reader, when it failed.
   error: string | null;
+  // true when the reader declined the wallet popup.
+  declined: boolean;
+  // the hash of the transaction that added the key, for the link to
+  // the transaction page.
+  tx_hash: string | null;
 }
 // ========================================
 // ========================================
@@ -52,6 +64,19 @@ function is_declined_fun(err: unknown): boolean {
   );
 }
 // ========================================
+// the hash of a wallet outcome, so the reader can open the transaction.
+//
+// --- WHY THE HASH IS READ BY THE SHARED HELPER: a near-kit outcome
+// carries its hash under `transaction.hash`, and the feed's send reads
+// the same thing. one helper, one knowledge.
+function outcome_hash_fun(outcome: unknown): string | null {
+  if (typeof outcome !== "object" || outcome === null) return null;
+  const transaction = (outcome as { transaction?: unknown }).transaction;
+  if (typeof transaction !== "object" || transaction === null) return null;
+  const hash = (transaction as { hash?: unknown }).hash;
+  return typeof hash === "string" ? hash : null;
+}
+// ========================================
 // ========================================
 // --- ADD -------------------------------
 // make a limited key and put it on the chain.
@@ -59,8 +84,6 @@ function is_declined_fun(err: unknown): boolean {
 // --- WHY THE RECEIVER IS A CONTRACT: a function-call key calls
 // methods on ONE contract. a contract that is not deployed cannot be
 // called, so a typo in the receiver id would burn the key's usefulness.
-// the reader's own account is always a valid receiver, so it is the
-// fallback.
 async function add_key_fun(
   receiver_id: string,
   method_names: string[],
@@ -73,6 +96,8 @@ async function add_key_fun(
       receiver_id,
       method_names,
       error: "YOU ARE NOT SIGNED IN",
+      declined: false,
+      tx_hash: null,
     };
   }
 
@@ -81,20 +106,43 @@ async function add_key_fun(
   const secret_key = key_pair.secretKey;
 
   try {
-    await near_kit_client()
-      .transaction(account_id)
-      .addKey(public_key, {
-        type: "functionCall",
-        receiverId: receiver_id,
-        methodNames: method_names,
-      })
-      .send();
+    const connector = near_connect_client();
+    const wallet = await connector.wallet();
+    const transaction = shit_1170_wallet_add_key_fun(
+      account_id,
+      public_key,
+      receiver_id,
+      method_names,
+    );
+    const outcomes = (await wallet.signAndSendTransactions({
+      signerId: account_id,
+      network: connector.network,
+      transactions: [transaction],
+    })) as ReadonlyArray<unknown>;
+
+    // --- WHY THE SECRET IS KEPT ONLY NOW: the key is on the chain, and
+    // this is the only moment the secret exists anywhere but the
+    // reader's screen. if the write fails the secret is lost for good,
+    // so it is better to lose it than to write a secret that is out of
+    // step with the chain.
+    await SHIT_1170_KEY_VAULT.put({
+      id: public_key,
+      account_id,
+      public_key,
+      secret_key,
+      receiver_id,
+      method_names,
+      created_at: Date.now(),
+    });
+
     return {
       public_key,
       secret_key,
       receiver_id,
       method_names,
       error: null,
+      declined: false,
+      tx_hash: outcome_hash_fun(outcomes[0]),
     };
   } catch (err) {
     return {
@@ -103,10 +151,12 @@ async function add_key_fun(
       receiver_id,
       method_names,
       error: is_declined_fun(err)
-        ? "YOU DECLINED THE WALLET"
+        ? null
         : err instanceof Error
           ? err.message
           : String(err),
+      declined: is_declined_fun(err),
+      tx_hash: null,
     };
   }
 }
