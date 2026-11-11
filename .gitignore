@@ -61,4 +61,12 @@ node_modules
 # nothing" is a different statement from "the key can spend one
 # yoctoNEAR".
 !frontend/lib/ts/keys/app_page_keys_allowance.test.ts
+
+# --- WHY THIS ONE IS TRACKED ---
+# this test pins that the keys list is rebuilt FROM THE CHAIN after
+# every add and every remove. the chain is the only thing that knows
+# what the account has, so a store that patched its own data would show
+# the reader a key the chain never accepted. it also pins that a full
+# access key can NEVER be picked for removal.
+!frontend/lib/ts/keys/app_page_keys_store.test.ts
 /.openchamber
