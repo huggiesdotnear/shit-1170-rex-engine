@@ -318,10 +318,11 @@ what it is.
 > > --- WHY --- THE CHECK RUNS BEFORE THE WRITE. a refused request never
 > > leaves half of itself in the db.
 
-> --- WHY --- THE RPC URL IS AN ENV VAR. the chain is read over json-rpc,
-> and which node answers is a deployment's business. the variable is
-> `SHIT_1170_NEAR_RPC_URL`, and it defaults to
-> `https://rpc.mainnet.fastnear.com`.
+> --- WHY --- THERE IS NO RPC URL TO CONFIGURE. the chain is read through
+> near-kit, the same toolkit the browser reads it through, and near-kit
+> carries the rpc url for each network with the network itself. so the
+> backend has no url of its own and cannot be pointed at the wrong chain
+> by a stale environment variable.
 
 ### the answer
 

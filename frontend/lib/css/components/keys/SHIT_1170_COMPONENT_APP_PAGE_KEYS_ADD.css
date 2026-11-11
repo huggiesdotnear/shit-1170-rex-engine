@@ -127,11 +127,10 @@
   color: #ffffff;
 }
 /*==================================*/
-/* the two ways out of the form: ADD THE KEY and QUEUE THE KEY, side by
-   side.
-   --- WHY THE QUEUE BUTTON IS THE QUIET ONE: the queue is the slower
-   road — the key waits in the feed for approval — so it does not ask
-   for the eye the way the direct add does. */
+/* the one way out of the form: the ADD THE KEY button.
+   --- WHY THE ROW IS STILL A ROW: the button fills the white block and
+   sits on its own, so it reads as THE thing the form does rather than
+   as one of several. */
 #SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD .keys-actions {
   display: flex;
   align-items: center;
@@ -139,18 +138,6 @@
   flex-wrap: wrap;
   width: 100%;
   margin-top: 4px;
-}
-#SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD .keys-actions .keys-clear {
-  color: #2b2b2b !important;
-  background-color: #ededed !important;
-  border-color: #c9c9c9 !important;
-}
-#SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD
-  .keys-actions
-  .keys-clear:hover:not(:disabled) {
-  color: #ffffff !important;
-  background-color: #009aab !important;
-  border-color: #009aab !important;
 }
 /*==================================*/
 /* the preview box: the pair the reader is shown BEFORE they approve

@@ -19,6 +19,25 @@
 // and its `view_access_key_list` is the reference read of an account's
 // keys.
 //
+// --- WHY --- NEAR-KIT-Rs IS THE RUST TOOL BOX: the typescript app reads
+// the chain through `near_kit_client()` from `@near-kit-tool-box/web`,
+// which is a thin wrapper over the `near-kit` javascript package. the
+// rust side has the same shape: there is a `near-kit-tool-box-rs` over
+// on github, and it is a library of contract helpers over `near-kit`
+// itself. the toolbox pins an older `near-kit`, and carrying two copies
+// of the same library in one binary is a cost the one call this file
+// makes does not justify — so the backend uses `near-kit` directly, the
+// same library both tool boxes sit on.
+//
+// --- WHY --- THE CLIENT IS NEAR-KIT'S AND NOT A BARE RPC CLIENT: near-kit
+// ships the rpc url for each network with the network itself
+// (`Near::mainnet()`, `Near::testnet()`), so the backend does not carry
+// an rpc url of its own and cannot be pointed at the wrong chain by a
+// stale environment variable. the browser picks its network from the
+// app's network toggle and near-kit supplies the url for it; the
+// backend asks near-kit for the mainnet client and near-kit supplies
+// the url for that.
+//
 // --- WHY --- ONLY THE DELETE IS CHECKED: `add_key` creates a key that
 // does not exist yet, so there is nothing on chain to check — the key
 // it names is the key the user is about to sign for. and an `add_key`
@@ -29,10 +48,9 @@
 // the chain as it is NOW. an older block would answer about a key that
 // has since been changed.
 use near_kit::AccountId;
-use near_kit::rpc::{AccessKeyListView, AccessKeyPermissionView, BlockReference, RpcClient};
+use near_kit::Near;
+use near_kit::rpc::{AccessKeyListView, AccessKeyPermissionView, BlockReference};
 use near_kit::signer::PublicKey;
-
-use crate::backend::logic::server::shit_1170_rpc_url_fun::shit_1170_rpc_url_fun;
 // ========================================
 // --- TYPES ------------------------------
 // why a key action was refused.
@@ -88,8 +106,13 @@ pub async fn tx_queue_key_verify_fun(
     };
 
     // --- THE CHAIN ----------------------
-    let rpc = RpcClient::new(shit_1170_rpc_url_fun());
-    let list = match rpc
+    // --- WHY --- NEAR-KIT'S OWN CLIENT AND NOT A RAW RPC CLIENT: near-kit
+    // carries the rpc url for each network with the network, so the
+    // backend has no url of its own to get wrong. and the client is
+    // cheap to build — it holds a url and a transport, not a connection.
+    let near = Near::mainnet().build();
+    let list = match near
+        .rpc()
         .view_access_key_list(&account, BlockReference::default())
         .await
     {

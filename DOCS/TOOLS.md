@@ -12,17 +12,26 @@ one file.
 NEAR RPC
 <br/>
 
-the backend reads the chain over json-rpc, and it needs it for ONE
-thing: checking that a key an agent wants to remove really IS a limited
-key on the account it names. the key's permission lives on chain, and
-only the chain knows it.
+the backend reads the chain for ONE thing: checking that a key an agent
+wants to remove really IS a limited key on the account it names. the
+key's permission lives on chain, and only the chain knows it.
 
-the url is the `SHIT_1170_NEAR_RPC_URL` env var, and it defaults to
-`https://rpc.mainnet.fastnear.com`. a deployment that serves testnet
-sets `https://rpc.testnet.fastnear.com`.
+it reads the chain through **near-kit**, the same toolkit the browser
+reads it through, and near-kit carries the rpc url for each network
+with the network itself. so there is no url to configure and no env var
+to get wrong — the backend asks near-kit for the client it wants and
+near-kit knows where to send it.
 
-the deprecated `rpc.mainnet.near.org` and `rpc.testnet.near.org` answer
-`429` for every request, and they are not the default.
+the frontend reads the chain through `near_kit_client()` from
+`@near-kit-tool-box/web`, which is a thin wrapper over the `near-kit`
+javascript package.
+
+the rust side has the same shape: `near-kit-tool-box-rs` over on
+github is a library of contract helpers over `near-kit`. it pins an
+older `near-kit`, and carrying two copies of the same library in one
+binary is a cost the backend's single chain call does not justify — so
+the backend uses `near-kit` directly, the same library both tool boxes
+sit on.
 
 =====================
 <br/>

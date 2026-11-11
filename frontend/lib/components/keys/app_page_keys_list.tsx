@@ -23,9 +23,12 @@
 // visible is a secret that gets read over someone's shoulder or
 // captured in a screenshot of the page. the reader asks for it.
 //
-// --- WHY THERE ARE TWO WAYS TO REMOVE: the REMOVE button signs the
-// removal right there, and the QUEUE button puts it in the feed for
-// approval beside everything else that is waiting. the reader chooses.
+// --- WHY THERE IS ONLY ONE WAY TO REMOVE: the REMOVE button signs the
+// removal right there. there used to be a second button that put the
+// removal in the feed for approval instead, and it was noise: the
+// reader came to this page to remove a key, and the page could do it.
+// the queue still carries key actions for an AGENT to ask for a
+// removal, but the user does not need this page to do it.
 //
 // mounts into <div id="SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST">.
 import { render } from "preact";
@@ -35,7 +38,6 @@ import { SHIT_1170_APP_PAGE_KEYS_STORE } from "../../ts/keys/app_page_keys_store
 import { use_page_store_fun } from "../../ts/shared/use_page_store";
 import { SHIT_1170_AUTH } from "../../ts/shared/auth_status";
 import { SHIT_1170_APP_PAGE_KEYS_REMOVE } from "../../ts/keys/app_page_keys_remove";
-import { shit_1170_app_page_keys_queue_remove_fun } from "../../ts/keys/app_page_keys_queue_remove";
 import { SHIT_1170_APP_PAGE_KEYS_ALLOWANCE } from "../../ts/keys/app_page_keys_allowance";
 import { SHIT_1170_TOAST_STORE } from "../../ts/shared/toast_store";
 // ========================================
@@ -80,9 +82,6 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST_FUN() {
   const picked = SHIT_1170_APP_PAGE_KEYS_STORE.get_picked();
   const busy = SHIT_1170_APP_PAGE_KEYS_STORE.is_busy();
   const [removing, set_removing] = use_state(false);
-  // true while the removals are being put in the queue, so the queue
-  // button says WORKING and stays off.
-  const [queuing, set_queuing] = use_state(false);
   // the keys whose private key is on screen. one entry per key, so
   // revealing one does not reveal the others.
   const [revealed, set_revealed] = use_state<ReadonlyArray<string>>([]);
@@ -147,56 +146,6 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST_FUN() {
     }
   };
 
-  // put the removal of every picked key in the queue, so the reader
-  // approves it in the feed.
-  //
-  // --- WHY EVERY PICKED KEY IS ITS OWN QUEUE: a queue is one thing the
-  // reader approves, and a key action names ONE key. a batch of removals
-  // would put several keys in one popup, and the reader could not tell
-  // which one the backend refused.
-  //
-  // --- WHY THE ERROR IS SHOWN AND NOT SWALLOWED: the backend reads the
-  // chain and refuses a removal that is not allowed — a full-access key
-  // is the account itself, and it may not be removed by the queue — and
-  // the reader has to be told WHICH key was refused.
-  const queue_fun = async () => {
-    if (queuing || picked.length === 0) return;
-    set_queuing(true);
-    try {
-      const refused: Array<string> = [];
-      let queued = 0;
-      for (const public_key of picked) {
-        const outcome =
-          await shit_1170_app_page_keys_queue_remove_fun(public_key);
-        if (outcome.error !== null) {
-          refused.push(`${public_key} — ${outcome.error}`);
-          continue;
-        }
-        queued += 1;
-      }
-      if (queued > 0) {
-        SHIT_1170_APP_PAGE_KEYS_STORE.clear_picked();
-        SHIT_1170_TOAST_STORE.show(
-          "success",
-          "REMOVAL QUEUED",
-          `${queued} KEY${queued === 1 ? "" : "S"} — APPROVE ${queued === 1 ? "IT" : "THEM"} IN THE FEED`,
-          null,
-        );
-      }
-      if (refused.length > 0) {
-        const message = refused.join(" — ");
-        SHIT_1170_TOAST_STORE.show(
-          "error",
-          "COULD NOT QUEUE THE KEYS",
-          message,
-          null,
-        );
-      }
-    } finally {
-      set_queuing(false);
-    }
-  };
-
   const forget_fun = async (public_key: string) => {
     await SHIT_1170_APP_PAGE_KEYS_STORE.forget(public_key);
     SHIT_1170_TOAST_STORE.show(
@@ -251,11 +200,7 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST_FUN() {
             // --- WHY A REMOVED KEY CANNOT BE PICKED: it is not on the
             // account, so there is nothing on the chain to remove. the
             // FORGET button is what takes it out of the record.
-            //
-            // --- WHY --- A QUEUED KEY CANNOT BE PICKED EITHER: it is not
-            // on the chain yet — it is waiting for the reader to approve
-            // it in the feed. there is nothing to remove until it is.
-            const can_pick = !row.removed && !row.queued;
+            const can_pick = !row.removed;
             return (
               <label
                 class={`keys-row is-limited${is_picked ? " is-picked" : ""}${
@@ -274,19 +219,11 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST_FUN() {
                 <div class="keys-row-body">
                   <div class="keys-row-head">
                     <span class="keys-kind">
-                      {row.queued
-                        ? "QUEUED — "
-                        : row.removed
-                          ? "REMOVED — "
-                          : ""}
+                      {row.removed ? "REMOVED — " : ""}
                       {row.receiver_id ?? "NO ACCOUNT"}
                     </span>
                     <span class="keys-nonce">
-                      {row.queued
-                        ? "WAITING FOR APPROVAL"
-                        : row.removed
-                          ? "NOT ON THE ACCOUNT"
-                          : `NONCE ${row.nonce}`}
+                      {row.removed ? "NOT ON THE ACCOUNT" : `NONCE ${row.nonce}`}
                     </span>
                   </div>
                   <code class="keys-public-key">{row.public_key}</code>
@@ -364,7 +301,7 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST_FUN() {
         <div class="keys-actions">
           <button
             type="button"
-            disabled={picked.length === 0 || busy || removing || queuing}
+            disabled={picked.length === 0 || busy || removing}
             onClick={() => {
               void remove_fun();
             }}
@@ -380,34 +317,11 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST_FUN() {
                 ? "REMOVE THE PICKED KEYS"
                 : `REMOVE ${picked.length} KEY${picked.length === 1 ? "" : "S"}`}
           </button>
-          {/* --- WHY --- THE QUEUE BUTTON IS THE QUIET ONE: the queue is
-              the slower road — the removal waits in the feed for
-              approval — so it does not ask for the eye the way the
-              direct removal does. */}
-          <button
-            type="button"
-            class="keys-clear"
-            disabled={picked.length === 0 || busy || removing || queuing}
-            onClick={() => {
-              void queue_fun();
-            }}
-            title={
-              picked.length === 0
-                ? "pick the keys you want gone first"
-                : "put the removal of the picked keys in the feed"
-            }
-          >
-            {queuing
-              ? "WORKING…"
-              : picked.length === 0
-                ? "QUEUE THE REMOVAL"
-                : `QUEUE ${picked.length} KEY${picked.length === 1 ? "" : "S"}`}
-          </button>
           {picked.length > 0 && (
             <button
               type="button"
               class="keys-clear"
-              disabled={busy || removing || queuing}
+              disabled={busy || removing}
               onClick={() => {
                 SHIT_1170_APP_PAGE_KEYS_STORE.clear_picked();
               }}
