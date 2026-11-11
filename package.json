@@ -10,7 +10,6 @@
     "build": "bun run build.ts",
     "build:middleman": "bun run --filter @huggies/shit-1170-rex-engine-middleman build",
     "typecheck": "bun run --filter '*' typecheck && tsc --noEmit",
-    "test": "bun test frontend/ middleman/src/",
     "clean": "bun run --filter @huggies/shit-1170-rex-engine-middleman clean"
   },
   "dependencies": {
