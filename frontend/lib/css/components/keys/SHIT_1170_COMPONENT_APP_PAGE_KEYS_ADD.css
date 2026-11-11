@@ -96,9 +96,17 @@
 /*==================================*/
 /* the buttons on the white block. the base button is a pale fill with
    red text, which is right for the red page and wrong on white, so the
-   buttons here carry their own colours. */
+   buttons here carry their own colours.
+
+   --- WHY THE WIDTH IS RESET: the base button is a hard
+   `width: 500px` — the width of the page column. the white block sits
+   INSIDE that column and has its own padding, so its content box is
+   narrower than 500px, and a 500px button stuck out of the box on both
+   sides. `width: 100%` makes the button fill the box it is in. */
 #SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD .keys-add > button,
 #SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD .keys-made-actions button {
+  width: 100%;
+  max-width: 100%;
   color: #ffffff;
   background-color: #da291c;
   border-color: #da291c;
@@ -114,19 +122,6 @@
   background-color: #b9b9b9;
   border-color: #b9b9b9;
   color: #ffffff;
-}
-/*==================================*/
-/* the CHECK THE CONTRACT button is the quiet one — it is a check, not
-   the thing the reader came to do. */
-#SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD .keys-check {
-  color: #2b2b2b !important;
-  background-color: #ededed !important;
-  border-color: #c9c9c9 !important;
-}
-#SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD .keys-check:hover:not(:disabled) {
-  color: #ffffff !important;
-  background-color: #009aab !important;
-  border-color: #009aab !important;
 }
 /*==================================*/
 /* the preview box: the pair the reader is shown BEFORE they approve
@@ -194,6 +189,9 @@
 }
 #SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD .keys-made-actions button {
   flex: 1 1 100%;
+  /* --- WHY THE WIDTH IS RESET HERE TOO: the preview box has its own
+     padding, so it is narrower than the white block, and a 500px
+     button in it stuck out the same way. */
   width: 100%;
   max-width: 100%;
   margin: 0;

@@ -45,10 +45,11 @@ node_modules
 !frontend/lib/ts/keys/app_page_keys_wallet_action.test.ts
 
 # --- WHY THIS ONE IS TRACKED ---
-# this test pins the CONTRACT CHECK the add form makes before it offers
-# to sign anything. a function-call key calls ONE contract, and a
-# contract with no code deployed cannot be called — so the key would be
-# made, it would cost a transaction, and it could never do anything.
-# the test also pins that a failed check is never a pass.
-!frontend/lib/ts/keys/app_page_keys_contract_check.test.ts
+# this test pins the ACCOUNT ID RULE and the URL parameters of the keys
+# page's form. the account a key may call does NOT have to be a
+# contract, so the app asks the chain nothing about it — it asks one
+# local thing: is this string an account id the chain will accept. the
+# test also pins that the url can prefill the form, so a link to the
+# page can say what the key is for.
+!frontend/lib/ts/keys/app_page_keys_account_id.test.ts
 /.openchamber

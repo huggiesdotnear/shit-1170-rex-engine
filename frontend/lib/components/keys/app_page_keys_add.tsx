@@ -13,10 +13,19 @@
 // so the pair is made FIRST, shown, and only then offered to the chain.
 // the pair on the screen IS the pair that goes on the chain.
 //
-// --- WHY THE CONTRACT IS CHECKED: a function-call key calls ONE
-// contract, and a contract that is not deployed cannot be called. so the
-// key would be made, it would cost a transaction, and it could never do
-// anything. the reader is told before they sign, not after.
+// --- WHY THE ACCOUNT IS NOT CHECKED AGAINST THE CHAIN: the account a
+// key may call does not have to be a contract — it can be any account
+// the reader means, and they know which one they mean. so the app does
+// not ask the chain whether code is deployed there. it asks ONE thing,
+// and it asks it locally: is this string an account id the chain will
+// accept? an id is 2 to 64 characters of lowercase letters, digits,
+// dots, dashes and underscores, and the input lowercases as the reader
+// types so a capital letter never gets that far.
+//
+// --- WHY THE FORM IS PREFILLED FROM THE URL: a link to this page
+// should say what the key is for — `keys.html?account=dex.intear.near
+// &methods=swap` — so the reader arrives with the boxes already
+// holding what they meant.
 //
 // mounts into <div id="SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD">.
 import { render } from "preact";
@@ -25,7 +34,8 @@ import { SHIT_1170_MOUNT_ID } from "../../ts/shared/mount_ids";
 import { SHIT_1170_AUTH } from "../../ts/shared/auth_status";
 import { SHIT_1170_APP_PAGE_KEYS_STORE } from "../../ts/keys/app_page_keys_store";
 import { SHIT_1170_APP_PAGE_KEYS_ADD } from "../../ts/keys/app_page_keys_add";
-import { SHIT_1170_APP_PAGE_KEYS_CONTRACT } from "../../ts/keys/app_page_keys_contract_check";
+import { SHIT_1170_APP_PAGE_KEYS_ACCOUNT_ID } from "../../ts/keys/app_page_keys_account_id";
+import { SHIT_1170_APP_PAGE_KEYS_URL } from "../../ts/keys/app_page_keys_url";
 import { SHIT_1170_TOAST_STORE } from "../../ts/shared/toast_store";
 // ========================================
 // ========================================
@@ -48,8 +58,15 @@ function parse_methods_fun(raw: string): string[] {
 function SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD_FUN() {
   const account_id = SHIT_1170_AUTH.get_account_id();
   const busy = SHIT_1170_APP_PAGE_KEYS_STORE.is_busy();
-  const [receiver_id, set_receiver_id] = use_state("");
-  const [methods, set_methods] = use_state("");
+  // --- WHY THE URL IS READ AS THE INITIAL VALUE: the boxes start with
+  // what the link said. a link that carried no parameters starts empty,
+  // and the reader types.
+  const [receiver_id, set_receiver_id] = use_state(
+    SHIT_1170_APP_PAGE_KEYS_URL.read_account() ?? "",
+  );
+  const [methods, set_methods] = use_state(
+    SHIT_1170_APP_PAGE_KEYS_URL.read_methods() ?? "",
+  );
   const [adding, set_adding] = use_state(false);
   // the pair the reader is shown BEFORE they approve anything. null
   // until they ask for one.
@@ -57,10 +74,6 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD_FUN() {
     public_key: string;
     secret_key: string;
   } | null>(null);
-  // the message about the contract, and whether it is good.
-  const [contract_error, set_contract_error] = use_state<string | null>(null);
-  const [contract_ok, set_contract_ok] = use_state(false);
-  const [checking, set_checking] = use_state(false);
   const [error, set_error] = use_state<string | null>(null);
 
   if (account_id === null) {
@@ -71,18 +84,14 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD_FUN() {
     );
   }
 
-  const check_fun = async () => {
-    set_checking(true);
-    set_contract_ok(false);
-    set_contract_error(null);
-    try {
-      const result = await SHIT_1170_APP_PAGE_KEYS_CONTRACT.check(receiver_id);
-      set_contract_error(result.error);
-      set_contract_ok(result.error === null);
-    } finally {
-      set_checking(false);
-    }
-  };
+  // the account the key will call, as the chain will see it.
+  const receiver = SHIT_1170_APP_PAGE_KEYS_ACCOUNT_ID.normalize(receiver_id);
+  // --- WHY THE CHECK IS OFFLINE: it is a rule about a string, not a
+  // question about the chain. no network call, no waiting.
+  const receiver_ok =
+    receiver.length > 0 &&
+    SHIT_1170_APP_PAGE_KEYS_ACCOUNT_ID.is_valid(receiver);
+  const method_names = parse_methods_fun(methods);
 
   const make_pair_fun = () => {
     set_pair(SHIT_1170_APP_PAGE_KEYS_ADD.make_pair());
@@ -95,6 +104,10 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD_FUN() {
       set_error("MAKE THE KEY FIRST");
       return;
     }
+    if (!receiver_ok) {
+      set_error("THE ACCOUNT THE KEY CALLS IS NOT A NEAR ACCOUNT ID");
+      return;
+    }
     set_adding(true);
     set_error(null);
     try {
@@ -102,16 +115,14 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD_FUN() {
         async () => {
           const outcome = await SHIT_1170_APP_PAGE_KEYS_ADD.add(
             pair,
-            receiver_id.trim(),
-            parse_methods_fun(methods),
+            receiver,
+            method_names,
           );
           if (outcome.declined) return null;
           if (outcome.error !== null) return outcome.error;
           set_pair(null);
           set_receiver_id("");
           set_methods("");
-          set_contract_ok(false);
-          set_contract_error(null);
           SHIT_1170_TOAST_STORE.show(
             "success",
             "KEY ADDED",
@@ -144,44 +155,39 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD_FUN() {
     <div class="keys-add">
       <h3 class="keys-group">ADD A LIMITED KEY</h3>
       <p class="keys-note">
-        A LIMITED KEY CAN ONLY CALL ONE CONTRACT. THE PRIVATE KEY IS SHOWN HERE
+        A LIMITED KEY CAN ONLY CALL ONE ACCOUNT. THE PRIVATE KEY IS SHOWN HERE
         AND SAVED IN THIS BROWSER, SO YOU CAN COME BACK FOR IT.
       </p>
 
       <label class="keys-field">
-        <span>CONTRACT THE KEY CALLS</span>
+        <span>ACCOUNT THE KEY CALLS</span>
         <input
           type="text"
           value={receiver_id}
           placeholder="contract.near"
+          spellcheck={false}
+          autocapitalize="none"
+          autocorrect="off"
           disabled={adding || busy}
           onInput={(event) => {
-            const next = (event.currentTarget as HTMLInputElement).value;
+            // --- WHY THE INPUT LOWERCASES AS THE READER TYPES: a NEAR
+            // account id is lowercase, and the chain rejects an id with
+            // a capital letter in it. so the capital never gets that
+            // far — the box shows the id the chain will see.
+            const next = SHIT_1170_APP_PAGE_KEYS_ACCOUNT_ID.normalize(
+              (event.currentTarget as HTMLInputElement).value,
+            );
             set_receiver_id(next);
-            // --- WHY THE CHECK IS CLEARED ON EVERY CHANGE: a contract
-            // that was checked is not a contract that is checked AFTER
-            // the reader changed it.
-            set_contract_ok(false);
-            set_contract_error(null);
           }}
         />
       </label>
 
-      {contract_error !== null && (
-        <p class="keys-note is-error">{contract_error}</p>
+      {receiver_id.length > 0 && !receiver_ok && (
+        <p class="keys-note is-error">
+          THAT IS NOT A NEAR ACCOUNT ID — ONLY LOWERCASE LETTERS, DIGITS, DOTS,
+          DASHES AND UNDERSCORES
+        </p>
       )}
-      {contract_ok && <p class="keys-note is-good">CONTRACT OK</p>}
-
-      <button
-        type="button"
-        class="keys-check"
-        disabled={adding || busy || checking || receiver_id.trim().length === 0}
-        onClick={() => {
-          void check_fun();
-        }}
-      >
-        {checking ? "CHECKING…" : "CHECK THE CONTRACT"}
-      </button>
 
       <label class="keys-field">
         <span>METHODS (COMMA SEPARATED, EMPTY MEANS ANY)</span>
@@ -189,6 +195,7 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD_FUN() {
           type="text"
           value={methods}
           placeholder="method_one,method_two"
+          spellcheck={false}
           disabled={adding || busy}
           onInput={(event) => {
             set_methods((event.currentTarget as HTMLInputElement).value);
@@ -214,11 +221,10 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD_FUN() {
             <p class="keys-detail">PRIVATE KEY</p>
             <code class="keys-secret-key">{pair.secret_key}</code>
             <p class="keys-detail">
-              THIS KEY WILL CALL: {receiver_id.trim() || "NO CONTRACT"} —
-              METHODS:{" "}
-              {parse_methods_fun(methods).length === 0
-                ? "ANY"
-                : parse_methods_fun(methods).join(", ")}
+              THIS KEY WILL CALL:{" "}
+              {receiver.length === 0 ? "NO ACCOUNT" : receiver}
+              {" — METHODS: "}
+              {method_names.length === 0 ? "ANY" : method_names.join(", ")}
             </p>
             <div class="keys-made-actions">
               <button
@@ -244,14 +250,14 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_ADD_FUN() {
 
           <button
             type="button"
-            disabled={adding || busy || !contract_ok}
+            disabled={adding || busy || !receiver_ok}
             onClick={() => {
               void add_fun();
             }}
             title={
-              contract_ok
+              receiver_ok
                 ? "add this key to the account"
-                : "check the contract first"
+                : "the account the key calls is not an account id"
             }
           >
             {adding ? "WORKING…" : "ADD THE KEY"}

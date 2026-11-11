@@ -203,7 +203,7 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST_FUN() {
                   <div class="keys-row-head">
                     <span class="keys-kind">
                       {row.removed ? "REMOVED — " : ""}
-                      {row.receiver_id ?? "NO CONTRACT"}
+                      {row.receiver_id ?? "NO ACCOUNT"}
                     </span>
                     <span class="keys-nonce">
                       {row.removed
