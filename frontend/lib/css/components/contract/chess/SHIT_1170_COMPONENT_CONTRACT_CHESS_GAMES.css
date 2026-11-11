@@ -4,6 +4,8 @@
    the link out to the protocol pawns web app. */
 /*==================================*/
 #SHIT_1170_COMPONENT_CONTRACT_CHESS_GAMES .results-scroll {
+  max-height: 460px;
+  overflow-y: auto;
   width: 100%;
   min-width: 0;
 }

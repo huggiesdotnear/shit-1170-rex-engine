@@ -11,7 +11,10 @@
 // <div id="SHIT_1170_COMPONENT_CONTRACT_CHESS_GAMES">.
 // ========================================
 import { render } from "preact";
-import { useEffect as use_effect } from "preact/hooks";
+import {
+  useEffect as use_effect,
+  useRef as use_ref,
+} from "preact/hooks";
 import { SHIT_1170_MOUNT_ID } from "../../../ts/shared/mount_ids";
 import { SHIT_1170_CONTRACT_PAGE_CHESS_STORE } from "../../../ts/contract/chess/contract_page_chess_store";
 import { use_page_store_fun } from "../../../ts/shared/use_page_store";
@@ -66,6 +69,7 @@ function game_row_fun(game: SHIT_1170_CHESS_GAME): preact.JSX.Element {
 // ========================================
 // --- COMPONENT --------------------------
 function SHIT_1170_COMPONENT_CONTRACT_CHESS_GAMES_FUN() {
+  const scroll_ref = use_ref<HTMLDivElement | null>(null);
   const page_data = use_page_store_fun(SHIT_1170_CONTRACT_PAGE_CHESS_STORE);
   const loading = SHIT_1170_CONTRACT_PAGE_CHESS_STORE.is_loading();
   const games = page_data?.games ?? [];
@@ -77,17 +81,17 @@ function SHIT_1170_COMPONENT_CONTRACT_CHESS_GAMES_FUN() {
   // so asking early means the rows are usually there.
   use_effect(() => {
     if (!has_more || loading) return;
+    const element = scroll_ref.current;
+    if (element === null) return;
     const on_scroll_fun = (): void => {
       const distance =
-        document.documentElement.scrollHeight -
-        window.scrollY -
-        window.innerHeight;
+        element.scrollHeight - element.scrollTop - element.clientHeight;
       if (distance > SHIT_1170_LOAD_MORE_THRESHOLD_PX) return;
       void SHIT_1170_CONTRACT_PAGE_CHESS_STORE.load_more();
     };
-    window.addEventListener("scroll", on_scroll_fun);
+    element.addEventListener("scroll", on_scroll_fun);
     return () => {
-      window.removeEventListener("scroll", on_scroll_fun);
+      element.removeEventListener("scroll", on_scroll_fun);
     };
   }, [has_more, loading, games.length]);
 
@@ -99,7 +103,7 @@ function SHIT_1170_COMPONENT_CONTRACT_CHESS_GAMES_FUN() {
       {!loading && games.length > 0 && (
         <p class="count">{games.length.toLocaleString()} GAMES</p>
       )}
-      <div class="results-scroll">
+      <div class="results-scroll" ref={scroll_ref}>
         {games.length === 0 && !loading ? (
           <p>NO GAMES</p>
         ) : (
