@@ -2,6 +2,8 @@
 
 💩 shit-1170 agentic and defi engine for near
 
+see [FORHACKATHON.md](./FORHACKATHON.md) for hackathon
+
 bun/frontend
 
 ```sh
