@@ -138,11 +138,11 @@ The hackathon has thirteen tracks. This project fits these:
 
 ## what was built during the hackathon window
 
-The hackathon window opened with the announcement on **2026-10-19** and closes **2026-11-14**. Everything below was built in that window, on the default branch of each repo.
+### the engine — 462 commits since the reset
 
-### the engine — 460 commits in the window
+The engine's history starts at a clean reset on **2026-10-18** (the `0.0.1-reset` tag). Everything before that tag was a different project and is not part of this submission — the 40 commits behind it are a separate trader app, and the reset commit is where this one begins.
 
-The engine was scaffolded on 2026-08-14 and shipped its whole surface during the window. Tags `v0.0.2` through `v0.0.8` all landed inside it.
+The hackathon window opened with the announcement on **2026-10-19** and closes **2026-11-14**. Every commit below is inside it, on the default branch.
 
 | date | what |
 | --- | --- |
@@ -154,12 +154,28 @@ The engine was scaffolded on 2026-08-14 and shipped its whole surface during the
 | 2026-10-29 → 11-04 | the DAO page (members, proposals, balances, status filter), the DEX contract pages, and **the queue and the feed** |
 | 2026-11-01 → 11-04 | the swap page, the switch-direction bar, the live quote, the swap queue, the queue and feed pages with real filters and cursor pagination |
 | 2026-11-05 | the live feed socket, the `llms.txt` agent map of the engine, the vault bins, the middleman's argument parsing and JSON printing as public API |
-| 2026-11-05 → 11-06 | the middleman becomes a real published package (`v0.0.6`, `v0.0.7`), the queue carries **raw bytes** for FastFS, the wallet's own action shapes |
+| 2026-11-05 → 11-06 | the middleman becomes a real published package with its own npm release workflow, the queue carries **raw bytes** for FastFS, the wallet's own action shapes |
 | 2026-11-07 | the FastFS upload section, the REX agent install card on the skill page, the `llm.md` move |
 | 2026-11-11 | the **access keys page**: add and remove limited keys directly from the UI, the chain check on the key's contract, the allowance, and the list rebuilt from the chain after every action |
 | 2026-11-11 | the chess contract contact page and the chess games table |
 
-The middleman is published to npm as `@huggies/shit-1170-rex-engine-middleman`, currently `0.0.7`.
+### the tags, and what each one marks
+
+The tags are the clearest way to see the project take shape.
+
+| tag | date | what it marks |
+| --- | --- | --- |
+| `0.0.1-reset` | 2026-10-18 | **the clean start.** The commit is titled `RESET cargo init`. Everything behind this tag was a different project. |
+| `0.0.1-pre` | 2026-11-01 | the app before any queue functionality — the pages, the account view, the token pages, the swap page. The queue backend lands three days later. |
+| `v0.0.2` | 2026-11-05 | **the queue and the feed.** The tx-queue data layer and routes, the feed and queue pages with real filters, the swap queue, the session key, and the middleman's npm release workflow |
+| `v0.0.3` | 2026-11-05 | the live feed socket, and the newest post at the top |
+| `v0.0.4` | 2026-11-05 | the feed says when the socket connected |
+| `v0.0.5` | 2026-11-05 | the vault bins, and the middleman's argument parsing and JSON printing as public API |
+| `v0.0.6` | 2026-11-05 | the `llms.txt` agent map of the engine, and the middleman's queue payload builder |
+| `v0.0.7` | 2026-11-06 | the queue carries raw bytes, so FastFS uploads work |
+| `v0.0.8` | 2026-11-12 | the FastFS section on the tx page, the REX agent install card, and the **access keys page** — add and remove limited keys directly from the UI — plus the chess contact page |
+
+**The middleman is published to npm as `@huggies/shit-1170-rex-engine-middleman`, currently `0.0.7`.**
 
 ### the skills — 82 commits in the window, all 13 skills new
 
@@ -514,8 +530,7 @@ Per the hackathon rules, pre-window work is baseline and the NEAR integration bu
 
 | what | when | status |
 | --- | --- | --- |
-| the engine's Rust scaffold | 2026-08-14 | baseline |
-| the engine's full surface — the pages, the queue, the feed, the swap queue, the keys page | 2026-10-19 → 11-12 | **in the window** — 460 commits |
+| the engine — everything | since the `0.0.1-reset` tag, 2026-10-18 | **in the window** — all 462 commits. Nothing of this project predates the reset. |
 | the tool box (TS) | started 2026-03-29 | baseline for the 72 pre-window commits |
 | the tool box's generic call helpers, the borsh codec swap, the CI release automation | 2026-10-28 → 10-29 | **in the window** |
 | the tool box's Sputnik DAO V2 support | 2026-10-28 → 11-09 | **in the window** |
@@ -524,6 +539,8 @@ Per the hackathon rules, pre-window work is baseline and the NEAR integration bu
 | the tool box skills | 2026-10-21 → 11-12 | **in the window** — all 49 commits |
 | the rex skills | 2026-11-03 → 11-12 | **in the window** — all 13 skills |
 | the REX agent profile | 2026-11-12 | **in the window** |
+
+**The engine has no pre-window baseline at all.** Its history was reset on 2026-10-18 and rebuilt from an empty scaffold. The 40 commits behind the `0.0.1-reset` tag belong to a different project and are not part of this submission — a judge can confirm that with `git log 0.0.1-reset` (40 commits, a trader app) versus `git log 0.0.1-reset..HEAD` (462 commits, the rex engine).
 
 The tool box's older releases — `0.0.2` in April, `v0.1.7` in August — are pre-window baseline, as are the contract helpers and the type system that came before the window. Everything the hackathon window added is listed in [the tool box section](#the-tool-box-during-the-hackathon-window).
 
@@ -541,12 +558,6 @@ No install needed. Read, in this order:
 6. **`near-kit-tool-box-ts/README.md`** — the foundation, and the three packages the whole project is built on.
 
 If you want to watch it work: <https://shit-1170.com/> — the feed, the queue, the swap page, the account page, the keys page, the DAO page and the chess page are all live.
-
----
-
-## note: the "spund dao"
-
-The DAO work in this project is **Sputnik DAO** — the factory at `sputnik-dao.near` and the DAOs it deploys, V2 on mainnet and testnet. There is no "spund dao" contract, and there was no such thing built during the window. If you saw that name somewhere, it was a mis-remembering of Sputnik.
 
 ---
 
