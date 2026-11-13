@@ -96,9 +96,7 @@ export function parse_args_fun(
     // often than a deliberate empty string, and a value-taking flag
     // must never swallow the next positional.
     if (value === undefined || value.startsWith("--")) {
-      throw new Error(
-        `--${name} was passed without a value`,
-      );
+      throw new Error(`--${name} was passed without a value`);
     }
     flags.set(name, value);
     i++;

@@ -207,13 +207,13 @@ the bins exist, and the app never has to handle migration logic.
 the bins live in `src/bin/` and their logic lives in
 `src/backend/logic/db/bin/`.
 
-| bin | what it does |
-| --- | --- |
-| `vault-list` | shows what is in a vault: the queues, the swaps and the row counts. it only reads. |
-| `vault-prune` | takes old queued batches and swaps off a vault, by age, by never-sent, or by id. |
-| `vault-backup` | takes a safe copy of a vault, with sqlite's own backup. |
-| `vault-export` | writes a vault out as json. |
-| `vault-import` | brings an export back into a vault. |
+| bin            | what it does                                                                       |
+| -------------- | ---------------------------------------------------------------------------------- |
+| `vault-list`   | shows what is in a vault: the queues, the swaps and the row counts. it only reads. |
+| `vault-prune`  | takes old queued batches and swaps off a vault, by age, by never-sent, or by id.   |
+| `vault-backup` | takes a safe copy of a vault, with sqlite's own backup.                            |
+| `vault-export` | writes a vault out as json.                                                        |
+| `vault-import` | brings an export back into a vault.                                                |
 
 every bin takes `--db <path>`. the flag wins over
 `SHIT_1170_VAULT_DB_LOCATION`, and that wins over the default path —

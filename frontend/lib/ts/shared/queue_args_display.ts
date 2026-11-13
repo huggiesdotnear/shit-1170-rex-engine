@@ -120,9 +120,10 @@ export function shit_1170_queue_args_display_fun(
   return {
     binary: true,
     json: "",
-    hex: shown.length < bytes.length
-      ? `${fastfs_bytes_to_hex_fun(shown)}\n…`
-      : fastfs_bytes_to_hex_fun(shown),
+    hex:
+      shown.length < bytes.length
+        ? `${fastfs_bytes_to_hex_fun(shown)}\n…`
+        : fastfs_bytes_to_hex_fun(shown),
     byte_length: bytes.length,
     fastfs_path,
     fastfs_mime,

@@ -97,7 +97,9 @@ const queue = args_require_string_fun(args, "queue");
 const limit = args_number_fun(args, "limit", 20);
 const hide_sent = args_bool_fun(args, "hide-sent");
 
-const answer = await quiet_fun(() => api_shit_1170_tx_queue_get(base_url, { limit }));
+const answer = await quiet_fun(() =>
+  api_shit_1170_tx_queue_get(base_url, { limit }),
+);
 print_json_fun({ ok: true, answer });
 ```
 

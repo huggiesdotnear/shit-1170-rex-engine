@@ -266,7 +266,7 @@ contract call:
       "keyAction": "add_key",
       "keyPublicKey": "ed25519:6E8sCci9badyRkXb3JoRpBj5p8C6Tw41ELDZoiihKEtp",
       "keyReceiverId": "ref.finance.near",
-      "keyMethodNames": [ "ft_swap" ],
+      "keyMethodNames": ["ft_swap"],
       "keyAllowance": "1000000000000000000000000"
     }
   ],

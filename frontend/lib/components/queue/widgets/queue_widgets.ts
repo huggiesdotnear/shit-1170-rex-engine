@@ -139,7 +139,9 @@ function fastfs_match_fun(queue: SHIT_1170_TX_QUEUE): boolean {
 export function register_widget(widget: QUEUE_WIDGET): void {
   for (const existing of registry) {
     if (existing.id === widget.id) {
-      throw new Error(`[queue_widgets] the widget "${widget.id}" is registered`);
+      throw new Error(
+        `[queue_widgets] the widget "${widget.id}" is registered`,
+      );
     }
   }
   registry = Object.freeze([...registry, Object.freeze(widget)]);
@@ -189,10 +191,7 @@ export function get_matching_widgets(
 // to the batch on screen. whether the widget is REGISTERED is a
 // different question — a widget can be registered and still not apply
 // to this batch, and then it shows nothing.
-export function widget_applies(
-  id: string,
-  queue: SHIT_1170_TX_QUEUE,
-): boolean {
+export function widget_applies(id: string, queue: SHIT_1170_TX_QUEUE): boolean {
   for (const widget of get_matching_widgets(queue)) {
     if (widget.id === id) return true;
   }

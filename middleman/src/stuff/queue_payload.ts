@@ -142,7 +142,8 @@ function is_base64_fun(value: string): boolean {
   // --- WHY --- THE DATA LENGTH AND THE PADDING MUST MATCH: base64 turns
   // three bytes into four characters, so the last group is short by one
   // character for one `=` and by two for two.
-  const wanted_padding = data % 4 === 0 ? 0 : data % 4 === 3 ? 1 : data % 4 === 2 ? 2 : -1;
+  const wanted_padding =
+    data % 4 === 0 ? 0 : data % 4 === 3 ? 1 : data % 4 === 2 ? 2 : -1;
   if (wanted_padding < 0) return false;
   if (padding !== wanted_padding) return false;
 
@@ -203,9 +204,7 @@ export function queue_call_fun(input: QUEUE_CALL_INPUT): QUEUE_CALL {
     Object.keys(input.args).length === 0;
 
   if (has_args_base64 && input.args !== undefined && !args_is_empty_object) {
-    throw new Error(
-      "a call carries either args or args_base64, not both",
-    );
+    throw new Error("a call carries either args or args_base64, not both");
   }
 
   const args = input.args ?? {};

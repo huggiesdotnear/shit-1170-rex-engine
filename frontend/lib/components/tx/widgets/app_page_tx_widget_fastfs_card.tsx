@@ -161,8 +161,8 @@ function preview_fun(
     return (
       <div class="fastfs-preview is-unavailable">
         <span class="fastfs-preview-note">
-          NO {kind.toUpperCase()} PREVIEW — THE FILE IS SERVED UNDER THE
-          ACCOUNT THAT SIGNED THE UPLOAD, AND THERE IS NONE
+          NO {kind.toUpperCase()} PREVIEW — THE FILE IS SERVED UNDER THE ACCOUNT
+          THAT SIGNED THE UPLOAD, AND THERE IS NONE
         </span>
       </div>
     );
@@ -213,7 +213,11 @@ export function fastfs_card_fun(props: {
       <div class="fastfs-head">
         <span class="fastfs-label">FASTFS UPLOAD</span>
         <span class="fastfs-kind">
-          {info.kind === "partial" ? "PARTIAL" : info.is_delete ? "DELETE" : "SIMPLE"}
+          {info.kind === "partial"
+            ? "PARTIAL"
+            : info.is_delete
+              ? "DELETE"
+              : "SIMPLE"}
         </span>
       </div>
       <div class="fastfs-path">{info.relative_path}</div>
@@ -277,8 +281,8 @@ export function fastfs_card_fun(props: {
         </div>
       )}
       <div class="fastfs-note is-live">
-        THE FILE IS SERVED FROM THE LINK ABOVE — THE INDEXER PICKED IT UP
-        FROM THE TRANSACTION
+        THE FILE IS SERVED FROM THE LINK ABOVE — THE INDEXER PICKED IT UP FROM
+        THE TRANSACTION
       </div>
       {preview_fun(info, url)}
       {problems.length > 0 && (

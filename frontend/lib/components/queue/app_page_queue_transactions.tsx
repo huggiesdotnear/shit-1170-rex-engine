@@ -60,9 +60,7 @@ function transaction_fun(
         <span class="queue-transaction-position">
           {String(transaction.position + 1)}
         </span>
-        <code class="queue-transaction-contract">
-          {transaction.contractId}
-        </code>
+        <code class="queue-transaction-contract">{transaction.contractId}</code>
         <span class="queue-transaction-method">{transaction.method}</span>
       </div>
       {(transaction.gas !== null || transaction.deposit !== null) && (
@@ -158,11 +156,9 @@ export function SHIT_1170_COMPONENT_QUEUE_TRANSACTIONS_FUN() {
       <div class="queue-transactions-list">
         {transactions.map((transaction) => (
           <div key={transaction.txId}>
-            {shit_1170_queue_is_key_action_fun(transaction) ? (
-              key_action_row_fun(transaction)
-            ) : (
-              transaction_fun(transaction)
-            )}
+            {shit_1170_queue_is_key_action_fun(transaction)
+              ? key_action_row_fun(transaction)
+              : transaction_fun(transaction)}
           </div>
         ))}
       </div>

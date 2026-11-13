@@ -58,7 +58,11 @@ console.log("=== the cursor pages and does not repeat or skip ===");
     pages++;
     if (cursor === null) break;
   }
-  check("every queue is seen", seen.length === total, `${seen.length} seen, total ${total}`);
+  check(
+    "every queue is seen",
+    seen.length === total,
+    `${seen.length} seen, total ${total}`,
+  );
   check(
     "no queue is seen twice",
     new Set(seen).size === seen.length,
@@ -71,7 +75,11 @@ console.log("=== the type filter's two halves answer on their own ===");
 {
   const calls = await get("/tx-queue?limit=500");
   const swaps = await get("/swap-queue?limit=500");
-  check("the batches answer", calls.status === 200, `total ${calls.body.total}`);
+  check(
+    "the batches answer",
+    calls.status === 200,
+    `total ${calls.body.total}`,
+  );
   check("the swaps answer", swaps.status === 200, `total ${swaps.body.total}`);
   check(
     "the two halves have different totals",
@@ -89,7 +97,11 @@ console.log("=== the comma separated filters are read ===");
   const contract = facets.body.contracts?.[0]?.contractId;
   const account = facets.body.accounts?.[0]?.accountId;
   if (contract === undefined || account === undefined) {
-    check("the facets have something to filter by", false, "no contracts or accounts");
+    check(
+      "the facets have something to filter by",
+      false,
+      "no contracts or accounts",
+    );
   } else {
     const one = await get(`/tx-queue?contract_id=${contract}`);
     const two = await get(
@@ -144,7 +156,9 @@ console.log("=== the swaps answer the contract filter ===");
       two.body.total === filtered.body.total,
       `${two.body.total} vs ${filtered.body.total}`,
     );
-    const empty = await get("/swap-queue?contract_id=definitely.not.a.contract");
+    const empty = await get(
+      "/swap-queue?contract_id=definitely.not.a.contract",
+    );
     check(
       "a contract nobody has queued work for shows nothing",
       empty.body.total === 0,
@@ -158,8 +172,22 @@ console.log("=== the facets give the bar its buttons ===");
   const facets = await get("/tx-queue/facets");
   const contracts = facets.body.contracts ?? [];
   const accounts = facets.body.accounts ?? [];
-  check("the contracts carry an id and a count", contracts.every((one: any) => typeof one.contractId === "string" && typeof one.count === "number"), `${contracts.length} contracts`);
-  check("the accounts carry an id and a count", accounts.every((one: any) => typeof one.accountId === "string" && typeof one.count === "number"), `${accounts.length} accounts`);
+  check(
+    "the contracts carry an id and a count",
+    contracts.every(
+      (one: any) =>
+        typeof one.contractId === "string" && typeof one.count === "number",
+    ),
+    `${contracts.length} contracts`,
+  );
+  check(
+    "the accounts carry an id and a count",
+    accounts.every(
+      (one: any) =>
+        typeof one.accountId === "string" && typeof one.count === "number",
+    ),
+    `${accounts.length} accounts`,
+  );
 }
 
 console.log("=== the counts the bar shows are right ===");
@@ -172,7 +200,8 @@ console.log("=== the counts the bar shows are right ===");
   );
   check(
     "the next cursor is there only when there is more",
-    (page.body.nextCursor !== null) === (page.body.items.length < page.body.total),
+    (page.body.nextCursor !== null) ===
+      page.body.items.length < page.body.total,
     `items ${page.body.items.length}, total ${page.body.total}, cursor ${page.body.nextCursor === null ? "null" : "set"}`,
   );
 }

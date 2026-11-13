@@ -120,7 +120,9 @@ async function read_account_fun(
 // more permission shapes — the gas key variants — and every one of them
 // is a limited key with a receiver and methods on it. the reader wants
 // the same three facts for all of them.
-function read_permission_fun(permission: unknown): SHIT_1170_QUEUE_KEY_DETAILS_ROW {
+function read_permission_fun(
+  permission: unknown,
+): SHIT_1170_QUEUE_KEY_DETAILS_ROW {
   const empty = empty_details_fun();
   if (typeof permission !== "object" || permission === null) return empty;
   const record = permission as Record<string, unknown>;

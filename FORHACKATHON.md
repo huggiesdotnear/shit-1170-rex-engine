@@ -12,7 +12,7 @@ This document is for the NEAR HACKATHON judges. It explains what the project is,
 
 An AI agent that can send a transaction is one bad prompt away from draining an account.
 
-So agents get the read-only half of the chain and the human keeps the write half. The problem with that split is that it makes the agent nearly useless: it can tell you what you hold, but it cannot *do* anything about it. Every write becomes a copy-paste ritual — the agent produces JSON, the human pastes it into a wallet, the human signs it, the human pastes the hash back into the chat so the agent can continue. That loop is slow, error-prone, and breaks the moment the agent has to act on something the human is not watching.
+So agents get the read-only half of the chain and the human keeps the write half. The problem with that split is that it makes the agent nearly useless: it can tell you what you hold, but it cannot _do_ anything about it. Every write becomes a copy-paste ritual — the agent produces JSON, the human pastes it into a wallet, the human signs it, the human pastes the hash back into the chat so the agent can continue. That loop is slow, error-prone, and breaks the moment the agent has to act on something the human is not watching.
 
 **shit-1170 rex engine is the missing middle.** It is a queue between the agent and the human. The agent prepares a fully-verified transaction and hands it to the engine. The engine holds it. The human opens one page and signs it with their own wallet. The engine records the hash and the agent reads it back from the queue it queued. Nobody pastes anything, and the agent still never holds a key.
 
@@ -24,12 +24,12 @@ The rule the whole project is built on:
 
 ## what it is
 
-| piece | what it is | where it lives |
-| --- | --- | --- |
-| **the engine** | the Rust (axum) backend, the Preact frontend, and the typed client — the queue, the feed, the swap queue, the vault | [shit-1170-rex-engine](https://github.com/huggiesdotnear/shit-1170-rex-engine) |
-| **the agent** | REX — the agent profile: its identity, its rules, its references | [shit-1170-rex-engine-agent](https://github.com/huggiesdotnear/shit-1170-rex-engine-agent) |
-| **the skills** | 13 skills — the tool library REX draws on, and the only way it is allowed to touch the chain | [shit-1170-rex-engine-skills](https://github.com/huggiesdotnear/shit-1170-rex-engine-skills) |
-| **the tool box** | the reusable NEAR library the skills and the engine are built on — one year of work | [near-kit-tool-box](https://github.com/sleet-js/near-kit-tool-box-ts) |
+| piece            | what it is                                                                                                          | where it lives                                                                               |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| **the engine**   | the Rust (axum) backend, the Preact frontend, and the typed client — the queue, the feed, the swap queue, the vault | [shit-1170-rex-engine](https://github.com/huggiesdotnear/shit-1170-rex-engine)               |
+| **the agent**    | REX — the agent profile: its identity, its rules, its references                                                    | [shit-1170-rex-engine-agent](https://github.com/huggiesdotnear/shit-1170-rex-engine-agent)   |
+| **the skills**   | 13 skills — the tool library REX draws on, and the only way it is allowed to touch the chain                        | [shit-1170-rex-engine-skills](https://github.com/huggiesdotnear/shit-1170-rex-engine-skills) |
+| **the tool box** | the reusable NEAR library the skills and the engine are built on — one year of work                                 | [near-kit-tool-box](https://github.com/sleet-js/near-kit-tool-box-ts)                        |
 
 **Live site:** <https://shit-1170.com/>
 
@@ -39,7 +39,7 @@ The rule the whole project is built on:
 - **Frontend:** TypeScript, Preact, no framework. Plain pages, plain CSS, one folder per page.
 - **Middleman:** `@huggies/shit-1170-rex-engine-middleman` — the published typed client for the engine's HTTP API.
 - **The queue:** `POST /api/shit-1170/tx-queue` takes a batch of calls and returns a queue id plus the signing link. The human signs it. `POST /api/shit-1170/tx-queue/{queue_id}/sent` records the hash.
-- **The feed:** a live websocket at `GET /api/shit-1170/feed/ws` tells a subscribed agent *when* something changed. The engine's own routes say *what* it is.
+- **The feed:** a live websocket at `GET /api/shit-1170/feed/ws` tells a subscribed agent _when_ something changed. The engine's own routes say _what_ it is.
 - **The swap queue:** the same shape for swaps, with a live quote behind it.
 - **The vault:** a local SQLite vault of API keys and limited access keys, mounted as a docker volume, never published to a host port.
 
@@ -73,21 +73,21 @@ REX draws on the skills in [shit-1170-rex-engine-skills](https://github.com/hugg
 bunx skills add huggiesdotnear/shit-1170-rex-engine-skills
 ```
 
-| skill | what it owns |
-| --- | --- |
-| `shit-1170-rex-engine` | the queue: propose, verify, queue, track, and the chain checks |
-| `shit-1170-rex-tx-explorer` | an account's transaction history, and transactions by hash |
-| `shit-1170-rex-ft` | NEP-141 tokens: balances, metadata, holders, transfers, wNEAR |
-| `shit-1170-rex-keys` | limited access keys: generate, offer, remove, and read an account's keys |
-| `shit-1170-rex-unit-conversion` | human amounts to chain units, against the token's real decimals |
-| `shit-1170-rex-sputnik-dao` | DAO governance: policy, proposals, bounties, and the votes |
-| `shit-1170-rex-rhea-ammv2` | the Rhea AMM: pools, quotes, swaps, LP positions, the deposited balance |
-| `shit-1170-rex-rhea-dclv2` | the Rhea concentrated-liquidity DEX: pools, liquidity, limit orders |
-| `shit-1170-rex-near-social` | near.social: feeds, profiles, posts, and the social writes |
-| `shit-1170-rex-fastfs` | FastFS uploads: the borsh payload, the chunking, and the serving URL |
-| `shit-1170-rex-hello-sleet-near` | the hello.sleet.near greeting contract |
-| `shit-1170-rex-irc` | the shit-1170 IRC server: read a channel, post to it, hold the connection open |
-| `shit-1170-rex-chess` | on-chain chess on app.chess-game.near, in propose mode and in autonomous mode |
+| skill                            | what it owns                                                                   |
+| -------------------------------- | ------------------------------------------------------------------------------ |
+| `shit-1170-rex-engine`           | the queue: propose, verify, queue, track, and the chain checks                 |
+| `shit-1170-rex-tx-explorer`      | an account's transaction history, and transactions by hash                     |
+| `shit-1170-rex-ft`               | NEP-141 tokens: balances, metadata, holders, transfers, wNEAR                  |
+| `shit-1170-rex-keys`             | limited access keys: generate, offer, remove, and read an account's keys       |
+| `shit-1170-rex-unit-conversion`  | human amounts to chain units, against the token's real decimals                |
+| `shit-1170-rex-sputnik-dao`      | DAO governance: policy, proposals, bounties, and the votes                     |
+| `shit-1170-rex-rhea-ammv2`       | the Rhea AMM: pools, quotes, swaps, LP positions, the deposited balance        |
+| `shit-1170-rex-rhea-dclv2`       | the Rhea concentrated-liquidity DEX: pools, liquidity, limit orders            |
+| `shit-1170-rex-near-social`      | near.social: feeds, profiles, posts, and the social writes                     |
+| `shit-1170-rex-fastfs`           | FastFS uploads: the borsh payload, the chunking, and the serving URL           |
+| `shit-1170-rex-hello-sleet-near` | the hello.sleet.near greeting contract                                         |
+| `shit-1170-rex-irc`              | the shit-1170 IRC server: read a channel, post to it, hold the connection open |
+| `shit-1170-rex-chess`            | on-chain chess on app.chess-game.near, in propose mode and in autonomous mode  |
 
 ### it uses the skills' tools, and only the skills' tools
 
@@ -110,7 +110,7 @@ That is the whole design in one feature: **the agent may act on its own only ins
 NEAR is not a rendering layer on this project. It is the reason the design works.
 
 - **Function call keys are a first-class primitive.** The restricted-key model — one contract, an allowance, a method list — is exactly the box an agent needs to act without a human, and exactly the box a human can audit before approving. This is not a wrapper around a chain that happens to support it; it is the security primitive the whole project is built on.
-- **The account *is* the wallet.** There is no separate key store, no separate signing service, no separate user table. A limited key is an access key on an account, and the chain enforces its scope. The engine's `keys` page can therefore verify a key against the chain and rebuild its list from the chain after every action — the UI never has to be trusted about what a key can do.
+- **The account _is_ the wallet.** There is no separate key store, no separate signing service, no separate user table. A limited key is an access key on an account, and the chain enforces its scope. The engine's `keys` page can therefore verify a key against the chain and rebuild its list from the chain after every action — the UI never has to be trusted about what a key can do.
 - **Cheap, fast, and readable transactions.** The engine's feed, the queue, the verification loop and the chess daemon all assume transactions are cheap enough and fast enough to be a stream of small events rather than rare heavy ones. A read-heavy, verify-everything agent workflow does not work on a chain where every call costs a day's fees.
 - **Delegated actions (NEP-366).** The Rust tool box implements meta-transaction signing with a relayer, so an agent can act for an account with no balance of its own — the relayer pays the gas and the storage. This is the shape an agent economy needs, and NEAR has it built in.
 - **Named accounts and sub-accounts.** The DAO, the vault, the chess player accounts, the treasury — each is a real account with real keys and real scopes, not a row in someone's database.
@@ -123,14 +123,14 @@ NEAR is not a rendering layer on this project. It is the reason the design works
 
 The hackathon has thirteen tracks. This project fits these:
 
-| track id | track | why it fits |
-| --- | --- | --- |
-| `agents` | Agent Economy | The literal subject. REX is an agent that reads the chain, verifies its own work, and prepares transactions it cannot sign — with an autonomous mode where a restricted key lets it act. The middleman is the paid client. |
-| `security` | AI Security & Defense | The restricted-key model, the vault, the "agent never signs" rule enforced by the architecture rather than a prompt, and the one documented exception where the box is narrow enough to audit. |
-| `defi` | Unstoppable DeFi | The swap queue with live quotes, the Rhea AMM and concentrated-liquidity skills, the DEX contract pages, and the token pages. |
-| `business` | Autonomous Business | Treasury-shaped work: a DAO's proposals and bounties, Trezu treasuries, an agent that prepares payments and gets them signed. |
-| `swarms` | AI Swarms | The engine is the coordination layer between many agents and many humans — a shared queue with a websocket feed, sub-accounts per participant, and an IRC channel where agents meet. |
-| `open` | Open Innovation | The queue-between-agent-and-human pattern, the engine and its skills split into separate repos, and the tool box as the shared foundation. |
+| track id   | track                 | why it fits                                                                                                                                                                                                                |
+| ---------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `agents`   | Agent Economy         | The literal subject. REX is an agent that reads the chain, verifies its own work, and prepares transactions it cannot sign — with an autonomous mode where a restricted key lets it act. The middleman is the paid client. |
+| `security` | AI Security & Defense | The restricted-key model, the vault, the "agent never signs" rule enforced by the architecture rather than a prompt, and the one documented exception where the box is narrow enough to audit.                             |
+| `defi`     | Unstoppable DeFi      | The swap queue with live quotes, the Rhea AMM and concentrated-liquidity skills, the DEX contract pages, and the token pages.                                                                                              |
+| `business` | Autonomous Business   | Treasury-shaped work: a DAO's proposals and bounties, Trezu treasuries, an agent that prepares payments and gets them signed.                                                                                              |
+| `swarms`   | AI Swarms             | The engine is the coordination layer between many agents and many humans — a shared queue with a websocket feed, sub-accounts per participant, and an IRC channel where agents meet.                                       |
+| `open`     | Open Innovation       | The queue-between-agent-and-human pattern, the engine and its skills split into separate repos, and the tool box as the shared foundation.                                                                                 |
 
 **The strongest three are `agents`, `security` and `open`.** If the jury wants one track: `agents`, because the project is about an agent that has to be safe in order to be useful at all.
 
@@ -144,36 +144,36 @@ The engine's history starts at a clean reset on **2026-10-18** (the `0.0.1-reset
 
 The hackathon window opened with the announcement on **2026-10-19** and closes **2026-11-14**. Every commit below is inside it, on the default branch.
 
-| date | what |
-| --- | --- |
-| 2026-10-19 | the axum server, the ping endpoint, the static serve — the engine starts |
-| 2026-10-20 → 10-21 | NEP-413 sign-in, the network pin, the account page with balances and USD, the token cache |
-| 2026-10-22 | the docker setup (multi-stage Dockerfile, compose) and the Cloudflare tunnel — the app stops publishing a host port |
-| 2026-10-23 | mainnet-only, multi-account sign-in |
-| 2026-10-24 → 10-28 | the page pattern: one file per page, one CSS file per page, the shared components, the Sputnik DAO page |
-| 2026-10-29 → 11-04 | the DAO page (members, proposals, balances, status filter), the DEX contract pages, and **the queue and the feed** |
-| 2026-11-01 → 11-04 | the swap page, the switch-direction bar, the live quote, the swap queue, the queue and feed pages with real filters and cursor pagination |
-| 2026-11-05 | the live feed socket, the `llms.txt` agent map of the engine, the vault bins, the middleman's argument parsing and JSON printing as public API |
-| 2026-11-05 → 11-06 | the middleman becomes a real published package with its own npm release workflow, the queue carries **raw bytes** for FastFS, the wallet's own action shapes |
-| 2026-11-07 | the FastFS upload section, the REX agent install card on the skill page, the `llm.md` move |
-| 2026-11-11 | the **access keys page**: add and remove limited keys directly from the UI, the chain check on the key's contract, the allowance, and the list rebuilt from the chain after every action |
-| 2026-11-11 | the chess contract contact page and the chess games table |
+| date               | what                                                                                                                                                                                     |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-10-19         | the axum server, the ping endpoint, the static serve — the engine starts                                                                                                                 |
+| 2026-10-20 → 10-21 | NEP-413 sign-in, the network pin, the account page with balances and USD, the token cache                                                                                                |
+| 2026-10-22         | the docker setup (multi-stage Dockerfile, compose) and the Cloudflare tunnel — the app stops publishing a host port                                                                      |
+| 2026-10-23         | mainnet-only, multi-account sign-in                                                                                                                                                      |
+| 2026-10-24 → 10-28 | the page pattern: one file per page, one CSS file per page, the shared components, the Sputnik DAO page                                                                                  |
+| 2026-10-29 → 11-04 | the DAO page (members, proposals, balances, status filter), the DEX contract pages, and **the queue and the feed**                                                                       |
+| 2026-11-01 → 11-04 | the swap page, the switch-direction bar, the live quote, the swap queue, the queue and feed pages with real filters and cursor pagination                                                |
+| 2026-11-05         | the live feed socket, the `llms.txt` agent map of the engine, the vault bins, the middleman's argument parsing and JSON printing as public API                                           |
+| 2026-11-05 → 11-06 | the middleman becomes a real published package with its own npm release workflow, the queue carries **raw bytes** for FastFS, the wallet's own action shapes                             |
+| 2026-11-07         | the FastFS upload section, the REX agent install card on the skill page, the `llm.md` move                                                                                               |
+| 2026-11-11         | the **access keys page**: add and remove limited keys directly from the UI, the chain check on the key's contract, the allowance, and the list rebuilt from the chain after every action |
+| 2026-11-11         | the chess contract contact page and the chess games table                                                                                                                                |
 
 ### the tags, and what each one marks
 
 The tags are the clearest way to see the project take shape.
 
-| tag | date | what it marks |
-| --- | --- | --- |
-| `0.0.1-reset` | 2026-10-18 | **the clean start.** The commit is titled `RESET cargo init`. Everything behind this tag was a different project. |
-| `0.0.1-pre` | 2026-11-01 | the app before any queue functionality — the pages, the account view, the token pages, the swap page. The queue backend lands three days later. |
-| `v0.0.2` | 2026-11-05 | **the queue and the feed.** The tx-queue data layer and routes, the feed and queue pages with real filters, the swap queue, the session key, and the middleman's npm release workflow |
-| `v0.0.3` | 2026-11-05 | the live feed socket, and the newest post at the top |
-| `v0.0.4` | 2026-11-05 | the feed says when the socket connected |
-| `v0.0.5` | 2026-11-05 | the vault bins, and the middleman's argument parsing and JSON printing as public API |
-| `v0.0.6` | 2026-11-05 | the `llms.txt` agent map of the engine, and the middleman's queue payload builder |
-| `v0.0.7` | 2026-11-06 | the queue carries raw bytes, so FastFS uploads work |
-| `v0.0.8` | 2026-11-12 | the FastFS section on the tx page, the REX agent install card, and the **access keys page** — add and remove limited keys directly from the UI — plus the chess contact page |
+| tag           | date       | what it marks                                                                                                                                                                         |
+| ------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `0.0.1-reset` | 2026-10-18 | **the clean start.** The commit is titled `RESET cargo init`. Everything behind this tag was a different project.                                                                     |
+| `0.0.1-pre`   | 2026-11-01 | the app before any queue functionality — the pages, the account view, the token pages, the swap page. The queue backend lands three days later.                                       |
+| `v0.0.2`      | 2026-11-05 | **the queue and the feed.** The tx-queue data layer and routes, the feed and queue pages with real filters, the swap queue, the session key, and the middleman's npm release workflow |
+| `v0.0.3`      | 2026-11-05 | the live feed socket, and the newest post at the top                                                                                                                                  |
+| `v0.0.4`      | 2026-11-05 | the feed says when the socket connected                                                                                                                                               |
+| `v0.0.5`      | 2026-11-05 | the vault bins, and the middleman's argument parsing and JSON printing as public API                                                                                                  |
+| `v0.0.6`      | 2026-11-05 | the `llms.txt` agent map of the engine, and the middleman's queue payload builder                                                                                                     |
+| `v0.0.7`      | 2026-11-06 | the queue carries raw bytes, so FastFS uploads work                                                                                                                                   |
+| `v0.0.8`      | 2026-11-12 | the FastFS section on the tx page, the REX agent install card, and the **access keys page** — add and remove limited keys directly from the UI — plus the chess contact page          |
 
 **The middleman is published to npm as `@huggies/shit-1170-rex-engine-middleman`, currently `0.0.7`.**
 
@@ -181,15 +181,15 @@ The tags are the clearest way to see the project take shape.
 
 Every skill in the library was written during the window.
 
-| date | what |
-| --- | --- |
-| 2026-11-03 | the unit-conversion skill, with its eval assertions |
-| 2026-11-05 | the engine, ft and hello skills; the hash comes from the engine and the agent can watch the feed; the skills stop depending on each other |
+| date       | what                                                                                                                                                                 |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-11-03 | the unit-conversion skill, with its eval assertions                                                                                                                  |
+| 2026-11-05 | the engine, ft and hello skills; the hash comes from the engine and the agent can watch the feed; the skills stop depending on each other                            |
 | 2026-11-06 | the wrap.near skill with its conditional storage registration; the FastFS skill learns to tell a borsh action from a stringified one, and uploads through the engine |
-| 2026-11-09 | the Sputnik DAO skill, the Rhea AMM v2 skill, the Rhea concentrated-liquidity skill, and the tx-explorer skill with its local SQLite store |
-| 2026-11-11 | the **IRC skill, rewritten in Rust** as a long-lived connection, with a local store, a bot mode, and a `reply` command that posts and waits in one call |
-| 2026-11-11 | the near.social skill — reads through the middleman, writes queued for a human |
-| 2026-11-12 | the **keys skill** — generate a limited key, offer it, queue its removal, read an account's keys; and the **chess skill** — propose mode and an autonomous daemon |
+| 2026-11-09 | the Sputnik DAO skill, the Rhea AMM v2 skill, the Rhea concentrated-liquidity skill, and the tx-explorer skill with its local SQLite store                           |
+| 2026-11-11 | the **IRC skill, rewritten in Rust** as a long-lived connection, with a local store, a bot mode, and a `reply` command that posts and waits in one call              |
+| 2026-11-11 | the near.social skill — reads through the middleman, writes queued for a human                                                                                       |
+| 2026-11-12 | the **keys skill** — generate a limited key, offer it, queue its removal, read an account's keys; and the **chess skill** — propose mode and an autonomous daemon    |
 
 ### the agent — 5 commits
 
@@ -209,10 +209,10 @@ The REX profile itself, the skill catalogue, and the tools-only rule with the ch
 
 A reusable library for interacting with NEAR smart contracts, built on [near-kit](https://github.com/near-kit/near-kit-rs). Three parts, three repos, two languages:
 
-| repo | what it is |
-| --- | --- |
-| [near-kit-tool-box-ts](https://github.com/sleet-js/near-kit-tool-box-ts) | the TypeScript monorepo — `@near-kit-tool-box/web`, `/env`, `/fun` — published to npm |
-| [near-kit-tool-box-rs](https://github.com/sleet-rs/near-kit-tool-box-rs) | the Rust crate — `near-kit-tool-box`, the same helpers in Rust |
+| repo                                                                                    | what it is                                                                                |
+| --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| [near-kit-tool-box-ts](https://github.com/sleet-js/near-kit-tool-box-ts)                | the TypeScript monorepo — `@near-kit-tool-box/web`, `/env`, `/fun` — published to npm     |
+| [near-kit-tool-box-rs](https://github.com/sleet-rs/near-kit-tool-box-rs)                | the Rust crate — `near-kit-tool-box`, the same helpers in Rust                            |
 | [near-kit-tool-box-skills](https://github.com/sleetplayground/near-kit-tool-box-skills) | the skill library — 22 skills documenting every contract's methods, args, gas and deposit |
 
 ### why it was built
@@ -239,14 +239,14 @@ The Rust crate and the skill library are the later siblings of that same body of
 
 The releases, all tagged `vX.Y.Z` and matching the npm versions:
 
-| tag | date | what it carries |
-| --- | --- | --- |
-| `v0.2.4` | 2026-10-29 | |
-| `v0.2.5` | 2026-10-29 | |
-| `v0.2.6` | 2026-10-29 | |
+| tag      | date       | what it carries                                                                                                              |
+| -------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `v0.2.4` | 2026-10-29 |                                                                                                                              |
+| `v0.2.5` | 2026-10-29 |                                                                                                                              |
+| `v0.2.6` | 2026-10-29 |                                                                                                                              |
 | `v0.3.0` | 2026-10-29 | the big one — the generic contract call helpers, the borsh codec replaced with `@zorsh/zorsh`, and the CI release automation |
-| `v0.3.1` | 2026-11-09 | |
-| `v0.3.3` | 2026-11-12 | the current release — the chess support lands in it |
+| `v0.3.1` | 2026-11-09 |                                                                                                                              |
+| `v0.3.3` | 2026-11-12 | the current release — the chess support lands in it                                                                          |
 
 The commits that mattered, in the order they landed:
 
@@ -255,7 +255,7 @@ The commits that mattered, in the order they landed:
 - **2026-10-24 — `8a973b3` — one bin per helper.** Every helper gets a runnable bin with CLI flag arguments, and the bins are the test harness. A helper with no bin is a helper that was never actually run against the chain.
 - **2026-10-28 — `278f162` — the Sputnik DAO feature.** `feat(fun): the Sputnik DAO factory and daos, a generic view helper, and the rhea shares batch`. The DAO factory and the DAOs it deploys land, together with a generic view helper and a batched Rhea pool-shares read.
 - **2026-10-29 — `191d178` — every view validated.** `feat(fun): validate every JSON view response and document every type`. Around forty view helpers gain a zod response schema, and `DOCS/live_responses.md` records what the chain actually returned. A helper that returns a shape the chain does not actually send is now a type error, not a runtime surprise.
-- **2026-10-29 — `d2973bb` → `2b184aa` → `e929444` — the generic contract call helpers.** This is the single most important addition in the window. `generic_contract_call_fun` takes a list of transactions and sends one NEAR transaction per input, with the actions in array order, sequential by default so a single private key is safe, optionally parallel. `generic_contract_call_wallet` batches the same list through a browser wallet's `signAndSendTransactions` — one popup for the whole batch. Gas and deposit accept raw units *or* near-kit's human forms (`"30 Tgas"`, `"1 NEAR"`, `"… yocto"`).
+- **2026-10-29 — `d2973bb` → `2b184aa` → `e929444` — the generic contract call helpers.** This is the single most important addition in the window. `generic_contract_call_fun` takes a list of transactions and sends one NEAR transaction per input, with the actions in array order, sequential by default so a single private key is safe, optionally parallel. `generic_contract_call_wallet` batches the same list through a browser wallet's `signAndSendTransactions` — one popup for the whole batch. Gas and deposit accept raw units _or_ near-kit's human forms (`"30 Tgas"`, `"1 NEAR"`, `"… yocto"`).
 - **2026-10-29 — `b11ca39` — the borsh codec replaced.** `refactor(fun): replace the hand-rolled borsh codec with @zorsh/zorsh`. The custom codec is swapped for the real one, touching all fifteen INTEAR DEX helpers. `c9b0977` fixes the bug it was hiding: the hand-rolled integer readers were reading a Node Buffer's whole pool.
 - **2026-10-29 — `e868118` — the release automation.** `feat(ci): automate the npm release with a trusted-publishing workflow`. A manual workflow bumps the patch version, syncs all three packages, tags `vX.Y.Z`, builds, publishes env → fun → web through **npm OIDC trusted publishing** (no long-lived token), verifies each published version against the registry, and cuts a GitHub release. `bd12f7d` fixes the verification to hit the registry directly instead of `npm view`.
 - **2026-10-30 — `1a9bfa7` / `1b4ce61` / `664ca50` — the DAO V2 work.** `feat(sputnik-dao): support V2 calls and testnet` adds twenty DAO and factory helpers with the V2 call shapes and the testnet contract id; `feat(sputnik-dao): add FunctionCall proposal helper and bin` adds the FunctionCall proposal helper with base64-encoded args; `fix(sputnik-dao): remove non-callable get_user_weight helper` deletes a helper for a method that does not exist — the kind of correction that only a live chain surfaces.
@@ -284,7 +284,7 @@ The commits that mattered, in the order they landed:
 
 ### what the tool box gives the agent
 
-The tool box is the answer to "how does an agent interact with a smart contract safely?" — and the answer is *not* "carefully".
+The tool box is the answer to "how does an agent interact with a smart contract safely?" — and the answer is _not_ "carefully".
 
 - **Typed args, one file per method.** `near_add_key_fun_json`, `chess_game_play_move_fun_json`, `rhea_ammv2_swap_fun_json` — the argument shape is in the type, the method name is in a constant, the contract id is in a per-network resolver.
 - **One contract id per network.** `rhea_ammv2_contractid(get_stored_network_id())` returns the mainnet or the testnet id. The agent never types a contract id from memory.
@@ -305,19 +305,19 @@ The Rust crate ships a view-only RPC load balancer (`LOAD_BALANCING_NEAR`): roun
 
 ### the published npm packages
 
-| package | what it is |
-| --- | --- |
+| package                                                                                                            | what it is                                                                                                  |
+| ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
 | [`@huggies/shit-1170-rex-engine-middleman`](https://www.npmjs.com/package/@huggies/shit-1170-rex-engine-middleman) | the engine's typed client — the queue, the swap queue, the API key, the argument parsing, the JSON printing |
-| [`@near-kit-tool-box/fun`](https://www.npmjs.com/package/@near-kit-tool-box/fun) | the reusable contract helpers — 218 source files across 16 contract families |
-| [`@near-kit-tool-box/env`](https://www.npmjs.com/package/@near-kit-tool-box/env) | the backend client, configured from `.env` |
-| [`@near-kit-tool-box/web`](https://www.npmjs.com/package/@near-kit-tool-box/web) | the browser client, with Hot Wallet Connect and network switching |
-| [`@sleet-js/middleman-intear-api`](https://www.npmjs.com/package/@sleet-js/middleman-intear-api) | the typed client for the INTEAR token registry API |
-| [`@sleet-js/middleman-intear-dex-api`](https://www.npmjs.com/package/@sleet-js/middleman-intear-dex-api) | the typed client for the INTEAR DEX backend |
-| [`@sleet-js/middleman-rhea-api`](https://www.npmjs.com/package/@sleet-js/middleman-rhea-api) | the typed client for the Rhea API |
-| [`@sleet-js/middleman-near-social-api`](https://www.npmjs.com/package/@sleet-js/middleman-near-social-api) | the typed client for the near.social API |
-| [`@sleet-js/middleman-protocol-pawns-api`](https://www.npmjs.com/package/@sleet-js/middleman-protocol-pawns-api) | the typed client for the Protocol Pawns API — the chess game, the elo, the leaderboard |
-| [`@sleet-js/fastnear-explorer-api-client`](https://www.npmjs.com/package/@sleet-js/fastnear-explorer-api-client) | the typed client for the FastNear explorer API |
-| [`@huggies/shit-bin`](https://www.npmjs.com/package/@huggies/shit-bin) | the shared CLI bin helpers |
+| [`@near-kit-tool-box/fun`](https://www.npmjs.com/package/@near-kit-tool-box/fun)                                   | the reusable contract helpers — 218 source files across 16 contract families                                |
+| [`@near-kit-tool-box/env`](https://www.npmjs.com/package/@near-kit-tool-box/env)                                   | the backend client, configured from `.env`                                                                  |
+| [`@near-kit-tool-box/web`](https://www.npmjs.com/package/@near-kit-tool-box/web)                                   | the browser client, with Hot Wallet Connect and network switching                                           |
+| [`@sleet-js/middleman-intear-api`](https://www.npmjs.com/package/@sleet-js/middleman-intear-api)                   | the typed client for the INTEAR token registry API                                                          |
+| [`@sleet-js/middleman-intear-dex-api`](https://www.npmjs.com/package/@sleet-js/middleman-intear-dex-api)           | the typed client for the INTEAR DEX backend                                                                 |
+| [`@sleet-js/middleman-rhea-api`](https://www.npmjs.com/package/@sleet-js/middleman-rhea-api)                       | the typed client for the Rhea API                                                                           |
+| [`@sleet-js/middleman-near-social-api`](https://www.npmjs.com/package/@sleet-js/middleman-near-social-api)         | the typed client for the near.social API                                                                    |
+| [`@sleet-js/middleman-protocol-pawns-api`](https://www.npmjs.com/package/@sleet-js/middleman-protocol-pawns-api)   | the typed client for the Protocol Pawns API — the chess game, the elo, the leaderboard                      |
+| [`@sleet-js/fastnear-explorer-api-client`](https://www.npmjs.com/package/@sleet-js/fastnear-explorer-api-client)   | the typed client for the FastNear explorer API                                                              |
+| [`@huggies/shit-bin`](https://www.npmjs.com/package/@huggies/shit-bin)                                             | the shared CLI bin helpers                                                                                  |
 
 ### the skills — 13 in the rex library, 22 in the tool box library
 
@@ -325,30 +325,30 @@ The Rust crate ships a view-only RPC load balancer (`LOAD_BALANCING_NEAR`): roun
 
 **The tool box skills** (installed with `bunx skills add sleetplayground/near-kit-tool-box-skills`) cover 22 contracts:
 
-| skill | contract |
-| --- | --- |
-| `sleet-kit-hello-sleet-near` | `hello.sleet.near` |
-| `sleet-kit-wrap-near` | `wrap.near` |
-| `sleet-kit-near` | the NEAR account methods — keys, account creation, deletion |
-| `sleet-kit-ft` | the NEP-141 standard |
-| `sleet-kit-v2-ref-finance-near` | the Rhea AMM v2 |
+| skill                                | contract                                                                                       |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| `sleet-kit-hello-sleet-near`         | `hello.sleet.near`                                                                             |
+| `sleet-kit-wrap-near`                | `wrap.near`                                                                                    |
+| `sleet-kit-near`                     | the NEAR account methods — keys, account creation, deletion                                    |
+| `sleet-kit-ft`                       | the NEP-141 standard                                                                           |
+| `sleet-kit-v2-ref-finance-near`      | the Rhea AMM v2                                                                                |
 | `sleet-kit-rhea-dclv2-ref-labs-near` | the Rhea concentrated-liquidity DEX — `views`, `calls`, `ft_transfer_call`, `multi`, `recipes` |
-| `sleet-kit-sputnik-dao` | the Sputnik DAO factory and the DAOs — `factory`, `dao` |
-| `sleet-kit-intear-dex` | the INTEAR DEX — `engine`, `xyk`, `otc`, `simple-amm`, `minimal` |
-| `sleet-kit-app-chess-game-near` | `app.chess-game.near` — `views`, `calls`, `bets` |
-| `sleet-kit-social-near` | near.social |
-| `sleet-kit-world-pumpopoly-near` | the pumpopoly world |
-| `sleet-kit-nft-pumpopoly-near` | the pumpopoly NFT |
-| `sleet-kit-exchequer-pumpopoly-near` | the pumpopoly exchequer |
-| `sleet-kit-pool-near-factory` | the NEAR pool factory |
-| `sleet-kit-pool-near-staking` | the per-validator staking pool |
-| `sleet-kit-hos-venear-dao` | the house-of-stake lockup DAO |
-| `sleet-kit-hos-lockup` | the house-of-stake lockup sub-account |
-| `sleet-kit-hos-vote-dao` | the house-of-stake vote DAO |
-| `sleet-kit-meta-pool-near` | the meta pool |
-| `sleet-kit-meme-cooking-near` | the meme.cooking launchpad |
-| `sleet-kit-linear-protocol-near` | the linear protocol |
-| `sleet-kit-berryclub-ek-near` | the berryclub contract |
+| `sleet-kit-sputnik-dao`              | the Sputnik DAO factory and the DAOs — `factory`, `dao`                                        |
+| `sleet-kit-intear-dex`               | the INTEAR DEX — `engine`, `xyk`, `otc`, `simple-amm`, `minimal`                               |
+| `sleet-kit-app-chess-game-near`      | `app.chess-game.near` — `views`, `calls`, `bets`                                               |
+| `sleet-kit-social-near`              | near.social                                                                                    |
+| `sleet-kit-world-pumpopoly-near`     | the pumpopoly world                                                                            |
+| `sleet-kit-nft-pumpopoly-near`       | the pumpopoly NFT                                                                              |
+| `sleet-kit-exchequer-pumpopoly-near` | the pumpopoly exchequer                                                                        |
+| `sleet-kit-pool-near-factory`        | the NEAR pool factory                                                                          |
+| `sleet-kit-pool-near-staking`        | the per-validator staking pool                                                                 |
+| `sleet-kit-hos-venear-dao`           | the house-of-stake lockup DAO                                                                  |
+| `sleet-kit-hos-lockup`               | the house-of-stake lockup sub-account                                                          |
+| `sleet-kit-hos-vote-dao`             | the house-of-stake vote DAO                                                                    |
+| `sleet-kit-meta-pool-near`           | the meta pool                                                                                  |
+| `sleet-kit-meme-cooking-near`        | the meme.cooking launchpad                                                                     |
+| `sleet-kit-linear-protocol-near`     | the linear protocol                                                                            |
+| `sleet-kit-berryclub-ek-near`        | the berryclub contract                                                                         |
 
 Each tool box skill follows the same house convention: the contract id per network, each method's call type, the exact argument shape, the required gas and deposit, then a **SOURCE** section (the contract's own repository), a **LINKS** section (site, app, api, explorer) and a **MIDDLEMAN PACKAGE** section for the typed client.
 
@@ -359,15 +359,15 @@ Each tool box skill follows the same house convention: the contract id per netwo
 
 ### the docs inside the repos
 
-| doc | where |
-| --- | --- |
-| the routes, the data model, the filters, the pages | `shit-1170-rex-engine/DOCS/ROUTES.md` |
-| the architecture, the layout, the page rules | `shit-1170-rex-engine/DOCS/GOLD.md`, `DOCS/RULES.md`, `DOCS/FILES.md` |
-| the vault | `shit-1170-rex-engine/DOCS/VAULT.md` |
-| the queue payload shapes, the checks, the reporting rules | `shit-1170-rex-engine-agent/agents/rex/references/QUEUEING.md` |
-| every skill, every bin, and what each one answers | `shit-1170-rex-engine-agent/agents/rex/references/SKILLS.md` |
-| where the facts come from, and the middleman packages used | `shit-1170-rex-engine-skills/DOCS/TOOLS.md` |
-| the agent's map of the engine, its skills and its tools | `shit-1170.com/llms.txt` |
+| doc                                                        | where                                                                 |
+| ---------------------------------------------------------- | --------------------------------------------------------------------- |
+| the routes, the data model, the filters, the pages         | `shit-1170-rex-engine/DOCS/ROUTES.md`                                 |
+| the architecture, the layout, the page rules               | `shit-1170-rex-engine/DOCS/GOLD.md`, `DOCS/RULES.md`, `DOCS/FILES.md` |
+| the vault                                                  | `shit-1170-rex-engine/DOCS/VAULT.md`                                  |
+| the queue payload shapes, the checks, the reporting rules  | `shit-1170-rex-engine-agent/agents/rex/references/QUEUEING.md`        |
+| every skill, every bin, and what each one answers          | `shit-1170-rex-engine-agent/agents/rex/references/SKILLS.md`          |
+| where the facts come from, and the middleman packages used | `shit-1170-rex-engine-skills/DOCS/TOOLS.md`                           |
+| the agent's map of the engine, its skills and its tools    | `shit-1170.com/llms.txt`                                              |
 
 ---
 
@@ -415,14 +415,14 @@ bunx awesome-agents add . --agent rex --harness opencode
 
 Where it lands:
 
-| harness | global install | project install |
-| --- | --- | --- |
-| Codex | `~/.codex/rex.config.toml` | not supported |
-| Claude Code | `~/.claude/agents/rex.md` | `.claude/agents/rex.md` |
-| OpenCode | `~/.config/opencode/agents/rex.md` | `.opencode/agents/rex.md` |
-| Goose | `~/.agents/agents/rex.md` | `.agents/agents/rex.md` |
-| Hermes | `~/.hermes/profiles/rex/SOUL.md` | not supported |
-| pi | `~/.pi/rex/` + a `pi-rex` launcher | not supported |
+| harness     | global install                     | project install           |
+| ----------- | ---------------------------------- | ------------------------- |
+| Codex       | `~/.codex/rex.config.toml`         | not supported             |
+| Claude Code | `~/.claude/agents/rex.md`          | `.claude/agents/rex.md`   |
+| OpenCode    | `~/.config/opencode/agents/rex.md` | `.opencode/agents/rex.md` |
+| Goose       | `~/.agents/agents/rex.md`          | `.agents/agents/rex.md`   |
+| Hermes      | `~/.hermes/profiles/rex/SOUL.md`   | not supported             |
+| pi          | `~/.pi/rex/` + a `pi-rex` launcher | not supported             |
 
 Run it:
 
@@ -442,7 +442,7 @@ bunx skills add huggiesdotnear/shit-1170-rex-engine-skills
 bunx skills add huggiesdotnear/shit-1170-rex-engine-skills --list
 ```
 
-The skills are **not published to npm** — they install from the repo. The `package.json` in each skill folder names the package it *would* have if it were published, and those names are internal.
+The skills are **not published to npm** — they install from the repo. The `package.json` in each skill folder names the package it _would_ have if it were published, and those names are internal.
 
 ### the tool box
 
@@ -464,7 +464,11 @@ const greeting = await greeting_get_greeting_fun_json(near, "hello.sleet.near");
 import { near_kit_env } from "@near-kit-tool-box/env";
 import { ft_balance_of_fun_json } from "@near-kit-tool-box/fun";
 
-const balance = await ft_balance_of_fun_json(near_kit_env, "token.near", "account.near");
+const balance = await ft_balance_of_fun_json(
+  near_kit_env,
+  "token.near",
+  "account.near",
+);
 ```
 
 The Rust crate:
@@ -505,22 +509,22 @@ The app is deployed in docker behind a Cloudflare tunnel, with **no host ports p
 
 ## the contracts and accounts this project touches
 
-| id | what | network |
-| --- | --- | --- |
-| `app.chess-game.near` | Protocol Pawns on-chain chess | mainnet |
-| `hello.sleet.near` | the greeting contract | mainnet |
-| `wrap.near` | wNEAR | mainnet |
-| `usdt.tether-token.near` | USDT — 24 to 6 decimals, `storage_balance_bounds.min` 0.00125 NEAR | mainnet |
-| `fastfs.near` | the FastFS receiver convention | mainnet |
-| `social` | the near.social write target | mainnet |
-| `sputnik-dao.near` | the Sputnik DAO factory | mainnet |
-| `<name>.sputnik-dao.near` | a DAO — e.g. `huggies.sputnik-dao.near`, `sleet.sputnik-dao.near` | mainnet |
-| `v2.ref-finance.near` | the Rhea AMM v2 | mainnet |
-| `dclv2.ref-labs.near` | the Rhea concentrated-liquidity DEX | mainnet |
-| `dex.intear.near` | the INTEAR DEX host contract | mainnet |
-| `sputnikv2.testnet` | the Sputnik DAO factory | testnet |
-| `ref-finance-101.testnet` | the Rhea AMM v2 | testnet |
-| `dclv2.ref-dev.testnet` | the Rhea concentrated-liquidity DEX | testnet |
+| id                        | what                                                               | network |
+| ------------------------- | ------------------------------------------------------------------ | ------- |
+| `app.chess-game.near`     | Protocol Pawns on-chain chess                                      | mainnet |
+| `hello.sleet.near`        | the greeting contract                                              | mainnet |
+| `wrap.near`               | wNEAR                                                              | mainnet |
+| `usdt.tether-token.near`  | USDT — 24 to 6 decimals, `storage_balance_bounds.min` 0.00125 NEAR | mainnet |
+| `fastfs.near`             | the FastFS receiver convention                                     | mainnet |
+| `social`                  | the near.social write target                                       | mainnet |
+| `sputnik-dao.near`        | the Sputnik DAO factory                                            | mainnet |
+| `<name>.sputnik-dao.near` | a DAO — e.g. `huggies.sputnik-dao.near`, `sleet.sputnik-dao.near`  | mainnet |
+| `v2.ref-finance.near`     | the Rhea AMM v2                                                    | mainnet |
+| `dclv2.ref-labs.near`     | the Rhea concentrated-liquidity DEX                                | mainnet |
+| `dex.intear.near`         | the INTEAR DEX host contract                                       | mainnet |
+| `sputnikv2.testnet`       | the Sputnik DAO factory                                            | testnet |
+| `ref-finance-101.testnet` | the Rhea AMM v2                                                    | testnet |
+| `dclv2.ref-dev.testnet`   | the Rhea concentrated-liquidity DEX                                | testnet |
 
 ---
 
@@ -528,17 +532,17 @@ The app is deployed in docker behind a Cloudflare tunnel, with **no host ports p
 
 Per the hackathon rules, pre-window work is baseline and the NEAR integration built in the window is what is judged. This is the honest accounting:
 
-| what | when | status |
-| --- | --- | --- |
-| the engine — everything | since the `0.0.1-reset` tag, 2026-10-18 | **in the window** — all 462 commits. Nothing of this project predates the reset. |
-| the tool box (TS) | started 2026-03-29 | baseline for the 72 pre-window commits |
-| the tool box's generic call helpers, the borsh codec swap, the CI release automation | 2026-10-28 → 10-29 | **in the window** |
-| the tool box's Sputnik DAO V2 support | 2026-10-28 → 11-09 | **in the window** |
-| the tool box's `app.chess-game.near` support | 2026-11-11 | **in the window** |
-| the tool box (Rust) | 2026-10-30 → 11-12 | **in the window** — the whole crate |
-| the tool box skills | 2026-10-21 → 11-12 | **in the window** — all 49 commits |
-| the rex skills | 2026-11-03 → 11-12 | **in the window** — all 13 skills |
-| the REX agent profile | 2026-11-12 | **in the window** |
+| what                                                                                 | when                                    | status                                                                           |
+| ------------------------------------------------------------------------------------ | --------------------------------------- | -------------------------------------------------------------------------------- |
+| the engine — everything                                                              | since the `0.0.1-reset` tag, 2026-10-18 | **in the window** — all 462 commits. Nothing of this project predates the reset. |
+| the tool box (TS)                                                                    | started 2026-03-29                      | baseline for the 72 pre-window commits                                           |
+| the tool box's generic call helpers, the borsh codec swap, the CI release automation | 2026-10-28 → 10-29                      | **in the window**                                                                |
+| the tool box's Sputnik DAO V2 support                                                | 2026-10-28 → 11-09                      | **in the window**                                                                |
+| the tool box's `app.chess-game.near` support                                         | 2026-11-11                              | **in the window**                                                                |
+| the tool box (Rust)                                                                  | 2026-10-30 → 11-12                      | **in the window** — the whole crate                                              |
+| the tool box skills                                                                  | 2026-10-21 → 11-12                      | **in the window** — all 49 commits                                               |
+| the rex skills                                                                       | 2026-11-03 → 11-12                      | **in the window** — all 13 skills                                                |
+| the REX agent profile                                                                | 2026-11-12                              | **in the window**                                                                |
 
 **The engine has no pre-window baseline at all.** Its history was reset on 2026-10-18 and rebuilt from an empty scaffold. The 40 commits behind the `0.0.1-reset` tag belong to a different project and are not part of this submission — a judge can confirm that with `git log 0.0.1-reset` (40 commits, a trader app) versus `git log 0.0.1-reset..HEAD` (462 commits, the rex engine).
 

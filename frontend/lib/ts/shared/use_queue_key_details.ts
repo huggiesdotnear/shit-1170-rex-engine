@@ -27,9 +27,8 @@ export function use_queue_key_details_fun(
   transaction: SHIT_1170_TX_QUEUE_TRANSACTION,
   account_id: string | null,
 ): SHIT_1170_QUEUE_KEY_DETAILS_ROW | null {
-  const [details, set_details] = use_state<SHIT_1170_QUEUE_KEY_DETAILS_ROW | null>(
-    null,
-  );
+  const [details, set_details] =
+    use_state<SHIT_1170_QUEUE_KEY_DETAILS_ROW | null>(null);
   const public_key = transaction.keyPublicKey ?? "";
   const key_action = transaction.keyAction ?? "";
 

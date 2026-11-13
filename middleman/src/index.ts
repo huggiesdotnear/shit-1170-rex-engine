@@ -67,11 +67,7 @@ export {
   args_number_fun,
 } from "./stuff/args";
 export type { ARGS, ARGS_OPTIONS } from "./stuff/args";
-export {
-  quiet_fun,
-  print_json_fun,
-  print_error_fun,
-} from "./stuff/json_io";
+export { quiet_fun, print_json_fun, print_error_fun } from "./stuff/json_io";
 export {
   queue_call_fun,
   DEFAULT_GAS,

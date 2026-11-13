@@ -23,9 +23,7 @@
 // one thing, and it lives in the fastnear client, next to the FastFS
 // decoder that reads the same bytes. a second copy of the format here
 // would be a second chance to drift.
-import {
-  fastfs_bytes_to_hex_fun,
-} from "@sleet-js/fastnear-explorer-api-client";
+import { fastfs_bytes_to_hex_fun } from "@sleet-js/fastnear-explorer-api-client";
 import type { SHIT_1170_TX_QUEUE_TRANSACTION } from "@huggies/shit-1170-rex-engine-middleman";
 // ========================================
 // ========================================

@@ -166,10 +166,7 @@ export function get_matching_widgets(
 // to the transaction on screen. whether the widget is REGISTERED is a
 // different question — a widget can be registered and still not apply
 // to this transaction, and then it shows nothing.
-export function widget_applies(
-  id: string,
-  parsed: PARSE_RESULT,
-): boolean {
+export function widget_applies(id: string, parsed: PARSE_RESULT): boolean {
   for (const widget of get_matching_widgets(parsed)) {
     if (widget.id === id) return true;
   }

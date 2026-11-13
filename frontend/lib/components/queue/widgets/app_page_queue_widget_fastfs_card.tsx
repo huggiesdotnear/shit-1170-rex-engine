@@ -62,7 +62,11 @@ export function fastfs_card_fun(props: {
       <div class="queue-fastfs-card-head">
         <span class="queue-fastfs-card-label">FASTFS UPLOAD</span>
         <span class="queue-fastfs-card-kind">
-          {info.kind === "partial" ? "PARTIAL" : info.is_delete ? "DELETE" : "SIMPLE"}
+          {info.kind === "partial"
+            ? "PARTIAL"
+            : info.is_delete
+              ? "DELETE"
+              : "SIMPLE"}
         </span>
       </div>
       <div class="queue-fastfs-card-path">{info.relative_path}</div>

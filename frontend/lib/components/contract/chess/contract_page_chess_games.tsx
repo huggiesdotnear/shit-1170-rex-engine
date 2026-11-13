@@ -11,10 +11,7 @@
 // <div id="SHIT_1170_COMPONENT_CONTRACT_CHESS_GAMES">.
 // ========================================
 import { render } from "preact";
-import {
-  useEffect as use_effect,
-  useRef as use_ref,
-} from "preact/hooks";
+import { useEffect as use_effect, useRef as use_ref } from "preact/hooks";
 import { SHIT_1170_MOUNT_ID } from "../../../ts/shared/mount_ids";
 import { SHIT_1170_CONTRACT_PAGE_CHESS_STORE } from "../../../ts/contract/chess/contract_page_chess_store";
 import { use_page_store_fun } from "../../../ts/shared/use_page_store";

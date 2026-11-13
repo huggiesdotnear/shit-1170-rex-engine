@@ -96,7 +96,9 @@ function game_href_fun(game_id: PROTOCOL_PAWNS_GAME_ID): string {
 }
 // ========================================
 // map one api game into the display record.
-function map_game_fun(game: PROTOCOL_PAWNS_GAME_OVERVIEW): SHIT_1170_CHESS_GAME {
+function map_game_fun(
+  game: PROTOCOL_PAWNS_GAME_OVERVIEW,
+): SHIT_1170_CHESS_GAME {
   return {
     game_id: game.game_id,
     href: game_href_fun(game.game_id),
@@ -116,7 +118,9 @@ function map_game_fun(game: PROTOCOL_PAWNS_GAME_OVERVIEW): SHIT_1170_CHESS_GAME 
 //
 // --- WHY --- the two requests run together: they are two different
 // endpoints, so the page is as slow as its slowest one.
-async function load_games_fun(cursor: string | null): Promise<SHIT_1170_CHESS_PAGE_DATA> {
+async function load_games_fun(
+  cursor: string | null,
+): Promise<SHIT_1170_CHESS_PAGE_DATA> {
   const [stats_result, games_result] = await Promise.all([
     api_protocol_pawns_stats({}),
     api_protocol_pawns_games({

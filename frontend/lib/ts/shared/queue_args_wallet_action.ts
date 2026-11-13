@@ -143,9 +143,7 @@ export interface SHIT_1170_WALLET_MANIFEST {
 // too. but their raw-byte route has not been tested here, and a
 // FastFS upload that is DROPPED SILENTLY is worse than one that is
 // refused out loud. a wallet added to this list needs its own test.
-const SHIT_1170_BYTE_WALLET_IDS = [
-  "intear-wallet",
-];
+const SHIT_1170_BYTE_WALLET_IDS = ["intear-wallet"];
 // ========================================
 // ========================================
 // --- HELPERS ----------------------------
@@ -173,10 +171,7 @@ export function shit_1170_wallet_id_fun(manifest: unknown): string {
 export function shit_1170_transaction_has_bytes_fun(
   transaction: SHIT_1170_TX_QUEUE_TRANSACTION,
 ): boolean {
-  if (
-    transaction.keyAction !== null &&
-    transaction.keyAction !== undefined
-  ) {
+  if (transaction.keyAction !== null && transaction.keyAction !== undefined) {
     return false;
   }
   return (

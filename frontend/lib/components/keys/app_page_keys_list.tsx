@@ -223,7 +223,9 @@ function SHIT_1170_COMPONENT_APP_PAGE_KEYS_LIST_FUN() {
                       {row.receiver_id ?? "NO ACCOUNT"}
                     </span>
                     <span class="keys-nonce">
-                      {row.removed ? "NOT ON THE ACCOUNT" : `NONCE ${row.nonce}`}
+                      {row.removed
+                        ? "NOT ON THE ACCOUNT"
+                        : `NONCE ${row.nonce}`}
                     </span>
                   </div>
                   <code class="keys-public-key">{row.public_key}</code>

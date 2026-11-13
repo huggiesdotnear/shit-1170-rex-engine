@@ -87,7 +87,11 @@ console.log("=== the list params are comma separated and not encoded ===");
     !fake_search.includes("%2C"),
     fake_search,
   );
-  check("the type is on the url", fake_search.includes("type=calls"), fake_search);
+  check(
+    "the type is on the url",
+    fake_search.includes("type=calls"),
+    fake_search,
+  );
   check(
     "the defaults are left off",
     !fake_search.includes("sort=") && !fake_search.includes("dir="),
@@ -158,10 +162,7 @@ console.log("=== the saved filter survives a round trip ===");
 console.log("=== a hand edited saved filter cannot break the app ===");
 {
   fake_storage.clear();
-  fake_storage.set(
-    "SHIT_1170_APP_PAGE_FEED_FILTER",
-    "{not json at all",
-  );
+  fake_storage.set("SHIT_1170_APP_PAGE_FEED_FILTER", "{not json at all");
   check(
     "a corrupt entry reads as nothing",
     SHIT_1170_APP_PAGE_FEED_SAVED.read() === null,
