@@ -93,12 +93,18 @@ the ceiling on what the key may attach. the reach is there because the
 reader is about to approve the key, and a key named without its reach is
 a blank approval.
 
+nothing is said TWICE. the headline and the reach are drawn one under
+the other, so a line that repeats the one above it reads as a mistake.
+an add's headline already names the contract and the methods, so an add
+shows only the ALLOWANCE under it. a remove's headline is just the
+public key, so a remove shows all three.
+
 an ADD's reach comes from the QUEUE - it is what the agent asked for,
 and it is known before anything is signed. a REMOVE's reach comes from
 the CHAIN - the queue deliberately drops it, because the chain is the
 one that knows what a key on the account may call - so the page asks the
 chain and shows what it finds. a remove whose reach could not be read
-says so, and says nothing else about the key.
+says only that, and says nothing else about the key.
 
 ```html
 <body>

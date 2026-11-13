@@ -125,23 +125,56 @@ export function shit_1170_queue_key_action_line_fun(
 // known before anything is signed. a remove's reach belongs to a key
 // that is already on the account, and the queue deliberately does not
 // carry it — the chain is the one that knows.
+//
+// --- WHY NOTHING IS SAID TWICE: the headline and the detail block are
+// drawn one under the other, so a line that says the same thing twice
+// reads as a mistake. an add's headline already names the contract and
+// the methods, so the detail block says only what the headline did not
+// — the allowance. a remove's headline is just the public key, so
+// there is nothing to repeat and the detail block says all of it.
+//
+// the rule is: a detail line is drawn only when the headline did not
+// already say it.
 export function shit_1170_queue_key_detail_lines_fun(
   transaction: SHIT_1170_TX_QUEUE_TRANSACTION,
   details: SHIT_1170_QUEUE_KEY_DETAILS_ROW | null,
 ): string[] {
   const lines: string[] = [];
   if (details === null) return lines;
+  // --- WHY THE HEADLINE IS READ FIRST: it is what the reader has
+  // already read, and a detail that repeats it is noise.
+  const headline = shit_1170_queue_key_action_line_fun(transaction);
+  // --- WHY AN UNREAD KEY SAYS ONLY THAT IT COULD NOT BE READ: a key
+  // whose reach the chain did not answer for is a key about which
+  // NOTHING is known. saying "ANY METHOD" would be a guess that reads
+  // like a fact, and a reader who approved it on that would be
+  // approving something nobody read.
+  if (!details.resolved) {
+    lines.push("THE KEY'S REACH COULD NOT BE READ");
+    return lines;
+  }
   // --- WHY THE RECEIVER IS SHOWN WHEN IT IS KNOWN AND NOT OTHERWISE:
   // a key with no contract has nothing to call, and saying so is better
   // than showing an empty line.
-  if (details.receiver_id !== null && details.receiver_id !== "") {
+  if (
+    details.receiver_id !== null &&
+    details.receiver_id !== "" &&
+    !headline.includes(details.receiver_id)
+  ) {
     lines.push(`CONTRACT: ${details.receiver_id}`);
   }
   const methods =
     details.method_names.length === 0
       ? "ANY METHOD"
       : details.method_names.join(", ");
-  lines.push(`METHODS: ${methods}`);
+  // --- WHY THE METHODS ARE SHOWN ONLY WHEN THE HEADLINE DID NOT SAY
+  // THEM: an add's headline already carries the methods in brackets.
+  // the check is on the METHODS themselves and not on the whole line,
+  // because a headline that names one method of ten still has nine the
+  // reader has not seen.
+  if (!headline.includes(methods)) {
+    lines.push(`METHODS: ${methods}`);
+  }
   // --- WHY A MISSING ALLOWANCE SAYS "NO ALLOWANCE" AND NOT "0 NEAR":
   // they are different things. a key with NO allowance cannot attach a
   // deposit at all. a key with an allowance of ZERO can attach a
@@ -151,12 +184,6 @@ export function shit_1170_queue_key_detail_lines_fun(
       ? "ALLOWANCE: NO ALLOWANCE"
       : `ALLOWANCE: ${details.allowance_human}`,
   );
-  // --- WHY AN UNRESOLVED REMOVE SAYS SO: the reader is looking at the
-  // removal of a key they cannot see. a line that says the reach could
-  // not be read is honest, and a silent blank is not.
-  if (!details.resolved) {
-    lines.push("THE KEY'S REACH COULD NOT BE READ");
-  }
   return lines;
 }
 // ========================================
