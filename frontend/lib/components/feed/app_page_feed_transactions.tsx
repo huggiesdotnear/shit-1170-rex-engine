@@ -49,9 +49,15 @@ import { shit_1170_code_block_fun } from "../tx/code_block";
 import {
   shit_1170_queue_is_key_action_fun,
   shit_1170_queue_key_action_line_fun,
+  shit_1170_queue_key_detail_lines_fun,
 } from "../../ts/shared/queue_key_action";
+import { use_queue_key_details_fun } from "../../ts/shared/use_queue_key_details";
+import { SHIT_1170_AUTH } from "../../ts/shared/auth_status";
 import type { SHIT_1170_TRANSFER_TOKEN } from "../../ts/shared/transfer_tokens";
-import type { SHIT_1170_TX_QUEUE } from "@huggies/shit-1170-rex-engine-middleman";
+import type {
+  SHIT_1170_TX_QUEUE,
+  SHIT_1170_TX_QUEUE_TRANSACTION,
+} from "@huggies/shit-1170-rex-engine-middleman";
 // ========================================
 // ========================================
 // --- HELPERS ----------------------------
@@ -80,6 +86,31 @@ function args_json_fun(args: Record<string, unknown>): string | null {
   return JSON.stringify(sorted, null, 2);
 }
 // ========================================
+// --- EMPTY -----------------------------
+// the transaction a batch with no calls is asked about.
+//
+// --- WHY IT EXISTS: the hook that reads a key's reach cannot be called
+// conditionally, and a batch can have no transactions at all. so the
+// hook is asked about THIS when there is nothing to ask about, and the
+// hook sees a transaction with no key action — which is the one thing it
+// already knows how to leave alone.
+const SHIT_1170_FEED_EMPTY_TRANSACTION = {
+  txId: "",
+  position: 0,
+  contractId: "",
+  method: "",
+  args: {},
+  argsBase64: null,
+  gas: null,
+  deposit: null,
+  keyAction: null,
+  keyPublicKey: null,
+  keyReceiverId: null,
+  keyMethodNames: null,
+  keyAllowance: null,
+  accounts: [],
+} as unknown as SHIT_1170_TX_QUEUE_TRANSACTION;
+// ========================================
 // --- COMPONENT --------------------------
 export function SHIT_1170_COMPONENT_APP_PAGE_FEED_TRANSACTIONS_FUN(props: {
   queue: SHIT_1170_TX_QUEUE;
@@ -87,6 +118,16 @@ export function SHIT_1170_COMPONENT_APP_PAGE_FEED_TRANSACTIONS_FUN(props: {
   tokens: Map<string, SHIT_1170_TRANSFER_TOKEN>;
 }) {
   const first = props.queue.transactions[0];
+  // --- WHY --- THE HOOK IS CALLED BEFORE THE EARLY RETURN: a hook cannot
+  // be called conditionally, and a batch whose first transaction is
+  // missing would then change the NUMBER of hooks between renders. so
+  // the hook is asked about the first transaction — or about nothing,
+  // when there is no first transaction.
+  const account_id = SHIT_1170_AUTH.get_account_id();
+  const details = use_queue_key_details_fun(
+    first ?? SHIT_1170_FEED_EMPTY_TRANSACTION,
+    account_id,
+  );
   // a batch with no calls has nothing to show here.
   if (first === undefined) return null;
   const transfer = shit_1170_queue_first_transfer_fun(props.queue);
@@ -99,6 +140,15 @@ export function SHIT_1170_COMPONENT_APP_PAGE_FEED_TRANSACTIONS_FUN(props: {
   // show an empty contract and an empty method. the reader has to see
   // WHAT will happen to their keys before they approve it.
   const is_key_action = shit_1170_queue_is_key_action_fun(first);
+  // --- WHY --- THE KEY'S REACH IS SHOWN UNDER THE HEADLINE: the headline
+  // says WHICH key changes. the reach says what the key CAN DO — the
+  // contract, the methods and the ceiling on what it may spend — and
+  // that is what the reader is really approving. a post that named a
+  // key and said nothing about it would ask the reader to approve a
+  // blank.
+  const key_detail_lines = is_key_action
+    ? shit_1170_queue_key_detail_lines_fun(first, details)
+    : [];
 
   return (
     <div class="feed-call">
@@ -124,6 +174,19 @@ export function SHIT_1170_COMPONENT_APP_PAGE_FEED_TRANSACTIONS_FUN(props: {
           </span>
         )}
       </div>
+      {/* --- WHY --- THE KEY'S REACH IS SHOWN UNDER THE HEADLINE: the
+          headline says WHICH key changes; the reach says what the key
+          CAN DO. the reader is about to sign this, and a key named
+          without its reach is a blank approval. */}
+      {key_detail_lines.length > 0 && (
+        <div class="feed-call-key-detail">
+          {key_detail_lines.map((line) => (
+            <p class="feed-call-key-detail-line" key={line}>
+              {line}
+            </p>
+          ))}
+        </div>
+      )}
       {/* --- WHY --- THE ARGS ARE A CODE BLOCK AND NOT PLAIN TEXT: it is
           the same box every other piece of json in the app sits in, so
           a queued call's args and a finished transaction's args look

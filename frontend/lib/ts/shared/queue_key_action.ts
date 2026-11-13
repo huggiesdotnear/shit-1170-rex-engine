@@ -33,6 +33,7 @@ import {
   shit_1170_wallet_delete_keys_fun,
 } from "../keys/app_page_keys_wallet_action";
 import type { SHIT_1170_WALLET_TRANSACTION } from "./queue_args_wallet_action";
+import type { SHIT_1170_QUEUE_KEY_DETAILS_ROW } from "./queue_key_details";
 // ========================================
 // ========================================
 // --- DETECT ----------------------------
@@ -92,6 +93,11 @@ export function shit_1170_queue_key_action_wallet_fun(
 // remove is about one key, and the reader has to know WHICH key goes.
 // an add is about a new key's reach, and the reader has to know WHAT
 // it may call. the two say different things for a reason.
+//
+// --- WHY THE LINE DOES NOT CARRY THE ALLOWANCE: the line is a
+// HEADLINE — it names the action and nothing else, so it fits on one
+// line and stays comparable between a card and a row. the reach of the
+// key is a detail, and the details have their own block beside it.
 export function shit_1170_queue_key_action_line_fun(
   transaction: SHIT_1170_TX_QUEUE_TRANSACTION,
 ): string {
@@ -104,6 +110,54 @@ export function shit_1170_queue_key_action_line_fun(
   const methods =
     method_names.length === 0 ? "ANY METHOD" : method_names.join(", ");
   return `ADD LIMITED KEY -> ${receiver_id} (${methods})`;
+}
+// ========================================
+// --- DETAIL LINES ---------------------
+// the lines that describe what a key action DOES to the reader's keys.
+//
+// --- WHY THESE ARE LINES AND NOT A COMPONENT: the feed card and the
+// queue page both draw them, and a rule about what they say belongs
+// with the rule about what a key action IS.
+//
+// --- WHY AN ADD SHOWS ITS ALLOWANCE AND A REMOVE SHOWS THE KEY'S REAL
+// REACH: the two actions have different sources of truth. an add's
+// reach is what the agent asked for and it is IN the queue, so it is
+// known before anything is signed. a remove's reach belongs to a key
+// that is already on the account, and the queue deliberately does not
+// carry it — the chain is the one that knows.
+export function shit_1170_queue_key_detail_lines_fun(
+  transaction: SHIT_1170_TX_QUEUE_TRANSACTION,
+  details: SHIT_1170_QUEUE_KEY_DETAILS_ROW | null,
+): string[] {
+  const lines: string[] = [];
+  if (details === null) return lines;
+  // --- WHY THE RECEIVER IS SHOWN WHEN IT IS KNOWN AND NOT OTHERWISE:
+  // a key with no contract has nothing to call, and saying so is better
+  // than showing an empty line.
+  if (details.receiver_id !== null && details.receiver_id !== "") {
+    lines.push(`CONTRACT: ${details.receiver_id}`);
+  }
+  const methods =
+    details.method_names.length === 0
+      ? "ANY METHOD"
+      : details.method_names.join(", ");
+  lines.push(`METHODS: ${methods}`);
+  // --- WHY A MISSING ALLOWANCE SAYS "NO ALLOWANCE" AND NOT "0 NEAR":
+  // they are different things. a key with NO allowance cannot attach a
+  // deposit at all. a key with an allowance of ZERO can attach a
+  // deposit of zero, and can still be called.
+  lines.push(
+    details.allowance_human === null
+      ? "ALLOWANCE: NO ALLOWANCE"
+      : `ALLOWANCE: ${details.allowance_human}`,
+  );
+  // --- WHY AN UNRESOLVED REMOVE SAYS SO: the reader is looking at the
+  // removal of a key they cannot see. a line that says the reach could
+  // not be read is honest, and a silent blank is not.
+  if (!details.resolved) {
+    lines.push("THE KEY'S REACH COULD NOT BE READ");
+  }
+  return lines;
 }
 // ========================================
 // copyright 2026 by sleet.near

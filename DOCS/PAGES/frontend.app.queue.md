@@ -12,6 +12,15 @@ what the batch will DO is above and what it WILL CALL is below. the
 registry in `frontend/lib/components/queue/widgets/queue_widgets.ts`
 decides WHICH widgets apply and the page's divs decide WHERE they go.
 
+a KEY ACTION in the CALLS section is not a call - it changes the
+READER'S OWN KEYS - so it gets a row of its own and shows the action on
+the headline, and the key's REACH under it: the CONTRACT the key may
+call, the METHODS it may use, and the ALLOWANCE - the ceiling on what
+the key may attach. an ADD's reach comes from the QUEUE, and a REMOVE's
+reach comes from the CHAIN, which is the one that knows what a key on
+the account may call. the feed card shows the same reach the same way,
+so a reader who saw the post and then opens the batch reads one story.
+
 ```html
 <body>
   <!--==========================================-->

@@ -85,6 +85,21 @@ the TYPE group says which kind of post is FETCHED: FUNCTION CALL asks
 for the queued batches only, SWAPS asks for the queued swaps only, and
 ALL asks for both. one kind is half the requests.
 
+a KEY ACTION is not a call - it changes the READER'S OWN KEYS - so a
+post whose first transaction is one shows no contract and no method. it
+shows the action on the headline, and the key's REACH under it: the
+CONTRACT the key may call, the METHODS it may use, and the ALLOWANCE -
+the ceiling on what the key may attach. the reach is there because the
+reader is about to approve the key, and a key named without its reach is
+a blank approval.
+
+an ADD's reach comes from the QUEUE - it is what the agent asked for,
+and it is known before anything is signed. a REMOVE's reach comes from
+the CHAIN - the queue deliberately drops it, because the chain is the
+one that knows what a key on the account may call - so the page asks the
+chain and shows what it finds. a remove whose reach could not be read
+says so, and says nothing else about the key.
+
 ```html
 <body>
   <!--==========================================-->

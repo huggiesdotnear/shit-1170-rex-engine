@@ -26,6 +26,7 @@ import {
   type SHIT_1170_AUTH_SESSION,
 } from "./auth_sessions";
 import { SHIT_1170_API_KEY } from "./api_key";
+import { SHIT_1170_QUEUE_KEY_DETAILS } from "./queue_key_details";
 // ========================================
 // ========================================
 // ========================================
@@ -427,6 +428,11 @@ function remove_account_fun(target_account_id: string): void {
   // --- WHY --- the account's backend api key is forgotten with it:
   // the key belongs to the account, and the account is gone.
   SHIT_1170_API_KEY.reset_account(target_account_id);
+  // --- WHY --- the cached key reaches are forgotten with it: they were
+  // read from the chain for this account, and a key's reach can change
+  // between one reader and the next. an answer about the account's keys
+  // must not outlive the account.
+  SHIT_1170_QUEUE_KEY_DETAILS.forget();
   notify_fun();
 }
 // ========================================

@@ -32,7 +32,10 @@ import { shit_1170_queue_args_fun } from "../../ts/shared/queue_args";
 import {
   shit_1170_queue_is_key_action_fun,
   shit_1170_queue_key_action_line_fun,
+  shit_1170_queue_key_detail_lines_fun,
 } from "../../ts/shared/queue_key_action";
+import { use_queue_key_details_fun } from "../../ts/shared/use_queue_key_details";
+import { SHIT_1170_AUTH } from "../../ts/shared/auth_status";
 import type { SHIT_1170_TX_QUEUE_TRANSACTION } from "@huggies/shit-1170-rex-engine-middleman";
 // ========================================
 // ========================================
@@ -47,28 +50,20 @@ function transaction_fun(
   transaction: SHIT_1170_TX_QUEUE_TRANSACTION,
 ): preact.JSX.Element {
   const args = shit_1170_queue_args_fun(transaction);
-  // --- WHY --- A KEY ACTION GETS ITS OWN LINE: it is not a call — it
-  // changes the account's own keys — so the contract and the method are
-  // both empty for it. the reader has to see WHAT happens to their keys.
-  const is_key_action = shit_1170_queue_is_key_action_fun(transaction);
+  // --- WHY --- THIS ROW IS FOR A CALL AND NOT FOR A KEY ACTION: a key
+  // action is not a call — it changes the account's own keys — so the
+  // contract and the method are both empty for it and the arguments say
+  // nothing. a key action gets its own row below.
   return (
     <div class="queue-transaction">
       <div class="queue-transaction-head">
         <span class="queue-transaction-position">
           {String(transaction.position + 1)}
         </span>
-        {is_key_action ? (
-          <span class="queue-transaction-key">
-            {shit_1170_queue_key_action_line_fun(transaction)}
-          </span>
-        ) : (
-          <>
-            <code class="queue-transaction-contract">
-              {transaction.contractId}
-            </code>
-            <span class="queue-transaction-method">{transaction.method}</span>
-          </>
-        )}
+        <code class="queue-transaction-contract">
+          {transaction.contractId}
+        </code>
+        <span class="queue-transaction-method">{transaction.method}</span>
       </div>
       {(transaction.gas !== null || transaction.deposit !== null) && (
         <div class="queue-transaction-meta">
@@ -82,22 +77,69 @@ function transaction_fun(
           )}
         </div>
       )}
-      {!is_key_action &&
-        (args.binary ? (
-          <div class="queue-transaction-binary">
-            <span class="queue-transaction-binary-label">
-              RAW BYTES — {args.byte_length} BYTE
-              {args.byte_length === 1 ? "" : "S"}
-            </span>
-            <pre class="queue-transaction-binary-hex">
-              <code>{args.hex}</code>
-            </pre>
-          </div>
-        ) : (
-          shit_1170_code_block_fun({
-            code: args.json,
-          })
-        ))}
+      {args.binary ? (
+        <div class="queue-transaction-binary">
+          <span class="queue-transaction-binary-label">
+            RAW BYTES — {args.byte_length} BYTE
+            {args.byte_length === 1 ? "" : "S"}
+          </span>
+          <pre class="queue-transaction-binary-hex">
+            <code>{args.hex}</code>
+          </pre>
+        </div>
+      ) : (
+        shit_1170_code_block_fun({
+          code: args.json,
+        })
+      )}
+    </div>
+  );
+}
+// ========================================
+// --- KEY ACTION ROW -------------------
+// one key action: its headline, and what the key can do.
+//
+// --- WHY THE KEY ACTION HAS ITS OWN ROW AND IS NOT THE PLAIN ROW: a
+// key action is not a call. it changes the account's own keys, and the
+// reader has to see the REACH of the key — the contract it calls, the
+// methods it may use and the ceiling on what it may spend — before they
+// approve it. that reach is not in the arguments, so it has nowhere else
+// to go.
+//
+// --- WHY THE HOOK IS CALLED HERE AND NOT IN THE PLAIN ROW: the hook is
+// a hook, and a hook cannot be called conditionally. the plain row does
+// not need the answer, so the key action gets a row of its own and the
+// hook lives inside it.
+//
+// --- WHY THE READER'S ACCOUNT IS THE ACCOUNT ASKED: a remove names a
+// key, and the key's reach belongs to the account it sits on. the
+// reader's own account is the one they are signing as, and the one the
+// key action acts on.
+function key_action_row_fun(
+  transaction: SHIT_1170_TX_QUEUE_TRANSACTION,
+): preact.JSX.Element {
+  const account_id = SHIT_1170_AUTH.get_account_id();
+  const details = use_queue_key_details_fun(transaction, account_id);
+  const lines = shit_1170_queue_key_detail_lines_fun(transaction, details);
+  return (
+    <div class="queue-transaction is-key-action">
+      <div class="queue-transaction-head">
+        <span class="queue-transaction-position">
+          {String(transaction.position + 1)}
+        </span>
+        <span class="queue-transaction-key">
+          {shit_1170_queue_key_action_line_fun(transaction)}
+        </span>
+      </div>
+      {lines.length > 0 && (
+        <div class="queue-transaction-key-detail">
+          {lines.map((line) => (
+            <p class="queue-transaction-key-detail-line" key={line}>
+              {line}
+            </p>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -115,7 +157,13 @@ export function SHIT_1170_COMPONENT_QUEUE_TRANSACTIONS_FUN() {
       <h2>CALLS ({transactions.length})</h2>
       <div class="queue-transactions-list">
         {transactions.map((transaction) => (
-          <div key={transaction.txId}>{transaction_fun(transaction)}</div>
+          <div key={transaction.txId}>
+            {shit_1170_queue_is_key_action_fun(transaction) ? (
+              key_action_row_fun(transaction)
+            ) : (
+              transaction_fun(transaction)
+            )}
+          </div>
         ))}
       </div>
     </section>

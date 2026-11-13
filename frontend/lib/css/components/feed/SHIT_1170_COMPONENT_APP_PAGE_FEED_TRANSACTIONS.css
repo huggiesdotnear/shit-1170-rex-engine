@@ -30,6 +30,35 @@
   overflow-wrap: anywhere;
 }
 /*==================================*/
+/* the key's REACH: the contract it calls, the methods it may use and
+   the ceiling on what it may spend.
+
+   --- WHY --- IT IS ITS OWN BLOCK and not more of the headline: the
+   headline says WHICH key changes, and the reach says what the key CAN
+   DO. they are different lengths and different kinds of thing, and a
+   headline that carried both would wrap into something unreadable.
+
+   --- WHY --- THE LINES ARE DIMMED: the reach is detail, and detail must
+   not read as loud as the thing the reader approves. */
+#SHIT_1170_COMPONENT_APP_PAGE_FEED_POST .feed-call-key-detail {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+  width: 100%;
+  padding-left: 8px;
+  border-left: 1px solid currentColor;
+  opacity: 0.75;
+}
+/*==================================*/
+#SHIT_1170_COMPONENT_APP_PAGE_FEED_POST .feed-call-key-detail-line {
+  font-family: monospace;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+  margin: 0;
+}
+/*==================================*/
 /* the contract and the method, on one line. */
 #SHIT_1170_COMPONENT_APP_PAGE_FEED_POST .feed-call-line {
   display: flex;
