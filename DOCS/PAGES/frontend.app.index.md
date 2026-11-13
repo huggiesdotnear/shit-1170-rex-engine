@@ -103,8 +103,16 @@ an ADD's reach comes from the QUEUE - it is what the agent asked for,
 and it is known before anything is signed. a REMOVE's reach comes from
 the CHAIN - the queue deliberately drops it, because the chain is the
 one that knows what a key on the account may call - so the page asks the
-chain and shows what it finds. a remove whose reach could not be read
-says only that, and says nothing else about the key.
+chain and shows what it finds.
+
+a remove has THREE answers, and each says something different. the
+chain HAS the key, so the page shows its reach. the chain answered and
+the key was NOT in the answer - it was removed, or it was never there -
+so the page says THE KEY IS NOT ON THIS ACCOUNT, which is a fact about
+the key and not a failure to look. the chain did not answer at all, or
+there was no account to ask about, so the page says THE KEY'S REACH
+COULD NOT BE READ. neither of the last two guesses at the key's reach:
+a guess written like a fact is worse than no line at all.
 
 ```html
 <body>

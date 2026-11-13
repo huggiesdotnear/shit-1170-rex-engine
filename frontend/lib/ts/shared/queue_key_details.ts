@@ -53,11 +53,27 @@ export interface SHIT_1170_QUEUE_KEY_DETAILS_ROW {
   allowance_yocto: string | null;
   // the allowance, ready to read. null when there is none to read.
   allowance_human: string | null;
-  // true when the details came from the chain, and true when they could
-  // not be found — the reader needs to know if they are looking at the
-  // key's real reach or at nothing at all.
-  resolved: boolean;
+  // where these details came from.
+  //
+  // --- WHY IT IS A STATUS AND NOT A BOOLEAN: "we know" and "we do not
+  // know" are not the only two answers. a key that is NOT ON THE ACCOUNT
+  // is a third one, and it is the one a reader sees most: the key was
+  // already removed, so the chain answered and the key was not in the
+  // answer. a boolean would say "could not be read" for a key that was
+  // read perfectly well and found to be gone.
+  status: SHIT_1170_QUEUE_KEY_DETAILS_STATUS;
 }
+// --- WHY IT IS A NAMED SET AND NOT A FLAG: the three answers each say
+// something different to the reader, and each one gets its own line.
+//
+// - KNOWN: the chain has the key, and this is what it may do.
+// - GONE: the chain answered and the key was NOT on the account. it was
+//   removed, or it was never there. either way there is no reach left
+//   to read, and saying so is the whole message.
+// - UNREAD: the chain did not answer, or there was no account to ask
+//   about. the reach is unknown, and the reader is looking at a key
+//   they cannot see.
+export type SHIT_1170_QUEUE_KEY_DETAILS_STATUS = "known" | "gone" | "unread";
 // ========================================
 // --- CACHE -----------------------------
 // the chain's answers, per account and per public key.
@@ -69,16 +85,40 @@ const details_cache = new Map<string, SHIT_1170_QUEUE_KEY_DETAILS_ROW>();
 // the accounts whose keys have been read, so a second lookup of a key
 // that is NOT on the account does not ask the rpc again.
 const accounts_read = new Set<string>();
+// whether each account's read WORKED. a key that is missing from a list
+// the chain sent is gone, and a key that is missing from a read that
+// failed is unread — and only this map tells the two apart.
+const accounts_read_ok = new Map<string, boolean>();
 // ========================================
 // --- HELPERS ---------------------------
-// an empty details answer: a key we know nothing about.
-function empty_details_fun(): SHIT_1170_QUEUE_KEY_DETAILS_ROW {
+// an unread details answer: the chain did not answer, or there was no
+// account to ask about.
+//
+// --- WHY THE STATUS IS UNREAD AND NOT GONE: we do not know whether the
+// key is on the account, so we do not say it is not. a reader who sees
+// "the key is gone" and a reader who sees "we could not look" are being
+// told different things, and only the second one is true here.
+function unread_details_fun(): SHIT_1170_QUEUE_KEY_DETAILS_ROW {
   return {
     receiver_id: null,
     method_names: [],
     allowance_yocto: null,
     allowance_human: null,
-    resolved: false,
+    status: "unread",
+  };
+}
+// a gone details answer: the chain answered and the key was not on it.
+//
+// --- WHY IT IS NOT THE SAME AS UNREAD: the chain answered. there is no
+// reach to read because the key is not there, and that is a fact about
+// the key — not a failure to look.
+function gone_details_fun(): SHIT_1170_QUEUE_KEY_DETAILS_ROW {
+  return {
+    receiver_id: null,
+    method_names: [],
+    allowance_yocto: null,
+    allowance_human: null,
+    status: "gone",
   };
 }
 // the cache key for one account and one public key.
@@ -92,14 +132,29 @@ function cache_key_fun(account_id: string, public_key: string): string {
 // --- WHY A FAILED READ IS NOT AN ERROR THE READER SEES: the reader is
 // looking at a queued batch, and a rpc that is down must not take the
 // batch off the screen. the answer simply says the reach is unknown.
+//
+// --- WHY THE ANSWER CARRIES WHETHER THE READ WORKED: a read that
+// failed and a read that succeeded and found no such key lead to
+// DIFFERENT lines for the reader. a failed read means we do not know,
+// and a successful one that found nothing means the key is gone. the
+// two are the same to the caller that only sees an empty map, so the
+// flag travels with them.
 async function read_account_fun(
   account_id: string,
-): Promise<Map<string, SHIT_1170_QUEUE_KEY_DETAILS_ROW>> {
+): Promise<{
+  keys: Map<string, SHIT_1170_QUEUE_KEY_DETAILS_ROW>;
+  read_ok: boolean;
+}> {
   const found = new Map<string, SHIT_1170_QUEUE_KEY_DETAILS_ROW>();
   try {
     const response = await near_kit_client().getAccessKeys(account_id);
     const keys = (response as { keys?: unknown }).keys;
-    if (!Array.isArray(keys)) return found;
+    if (!Array.isArray(keys)) {
+      // --- WHY AN ANSWER WITH NO LIST IS NOT A GOOD READ: there is no
+      // key list to look in, so a key cannot be said to be missing from
+      // one. this is a read that did not work.
+      return { keys: found, read_ok: false };
+    }
     for (const entry of keys) {
       const key = entry as {
         public_key?: unknown;
@@ -109,10 +164,11 @@ async function read_account_fun(
       const details = read_permission_fun(key.access_key?.permission);
       found.set(key.public_key, details);
     }
+    return { keys: found, read_ok: true };
   } catch (err) {
     console.warn("[queue_key_details] the chain did not answer", err);
+    return { keys: found, read_ok: false };
   }
-  return found;
 }
 // the receiver, the methods and the allowance of one limited key.
 //
@@ -123,7 +179,7 @@ async function read_account_fun(
 function read_permission_fun(
   permission: unknown,
 ): SHIT_1170_QUEUE_KEY_DETAILS_ROW {
-  const empty = empty_details_fun();
+  const empty = unread_details_fun();
   if (typeof permission !== "object" || permission === null) return empty;
   const record = permission as Record<string, unknown>;
   const details =
@@ -149,7 +205,7 @@ function read_permission_fun(
     allowance_yocto,
     allowance_human:
       SHIT_1170_APP_PAGE_KEYS_ALLOWANCE.format(allowance_yocto).human,
-    resolved: true,
+    status: "known",
   };
 }
 // ========================================
@@ -174,35 +230,48 @@ export async function shit_1170_queue_key_details_fun(
       allowance_yocto,
       allowance_human:
         SHIT_1170_APP_PAGE_KEYS_ALLOWANCE.format(allowance_yocto).human,
-      resolved: true,
+      status: "known",
     };
   }
-  // --- WHY A REMOVE WITH NO ACCOUNT IS EMPTY AND NOT A CHAIN ASK: the
-  // chain would need an account to look the key up on, and a batch the
-  // reader is not on does not have one.
-  if (account_id === null) return empty_details_fun();
+  // --- WHY A REMOVE WITH NO ACCOUNT IS UNREAD AND NOT GONE: the chain
+  // would need an account to look the key up on, and a batch the reader
+  // is not on does not have one. we did not look, so we cannot say the
+  // key is gone.
+  if (account_id === null) return unread_details_fun();
   const public_key = transaction.keyPublicKey ?? "";
-  if (public_key === "") return empty_details_fun();
+  if (public_key === "") return unread_details_fun();
   const cached = details_cache.get(cache_key_fun(account_id, public_key));
   if (cached !== undefined) return cached;
   // --- WHY THE ACCOUNT IS READ ONCE AND NOT PER KEY: the account's
   // keys come back in one answer, and asking the rpc per key would be
   // one request per row of the feed.
   if (!accounts_read.has(account_id)) {
-    const found = await read_account_fun(account_id);
-    for (const [key, details] of found) {
+    const answer = await read_account_fun(account_id);
+    for (const [key, details] of answer.keys) {
       details_cache.set(cache_key_fun(account_id, key), details);
     }
     accounts_read.add(account_id);
+    // --- WHY A FAILED READ IS RECORDED AND NOT JUST SKIPPED: the next
+    // key of this account must know the read did not work, or it would
+    // say a missing key is GONE when nothing was actually looked up.
+    accounts_read_ok.set(account_id, answer.read_ok);
   }
   const found = details_cache.get(cache_key_fun(account_id, public_key));
   if (found !== undefined) return found;
   // --- WHY A KEY THAT IS NOT ON THE ACCOUNT IS CACHED TOO: a key that
   // was already removed answers nothing, and asking again for every
   // re-render of the same card would be asking the rpc for nothing.
-  const empty = empty_details_fun();
-  details_cache.set(cache_key_fun(account_id, public_key), empty);
-  return empty;
+  //
+  // --- WHY THE ANSWER DEPENDS ON WHETHER THE READ WORKED: a key that is
+  // missing from a list the chain DID send is GONE - it was removed, or
+  // it was never there. a key that is missing from a read that did not
+  // work is UNREAD, because nobody looked.
+  const answer =
+    accounts_read_ok.get(account_id) === true
+      ? gone_details_fun()
+      : unread_details_fun();
+  details_cache.set(cache_key_fun(account_id, public_key), answer);
+  return answer;
 }
 // --- FORGET -----------------------------
 // drop the cached answers.
@@ -213,6 +282,7 @@ export async function shit_1170_queue_key_details_fun(
 export function shit_1170_queue_key_details_forget_fun(): void {
   details_cache.clear();
   accounts_read.clear();
+  accounts_read_ok.clear();
 }
 // ========================================
 // --- PUBLIC ---------------------------

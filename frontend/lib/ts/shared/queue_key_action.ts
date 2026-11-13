@@ -135,6 +135,16 @@ export function shit_1170_queue_key_action_line_fun(
 //
 // the rule is: a detail line is drawn only when the headline did not
 // already say it.
+//
+// --- WHY A KEY THAT IS NOT ON THE ACCOUNT SAYS SO: the chain answered
+// and the key was not in the answer — it was removed, or it was never
+// there. that is a FACT about the key and not a failure to look, and
+// the reader is looking at the removal of a key that is already gone.
+// saying "the reach could not be read" for it would blame the reader's
+// connection for something the chain answered perfectly well.
+//
+// a key the chain did NOT answer for says the reach could not be read,
+// and that is a different sentence for a different fact.
 export function shit_1170_queue_key_detail_lines_fun(
   transaction: SHIT_1170_TX_QUEUE_TRANSACTION,
   details: SHIT_1170_QUEUE_KEY_DETAILS_ROW | null,
@@ -144,12 +154,21 @@ export function shit_1170_queue_key_detail_lines_fun(
   // --- WHY THE HEADLINE IS READ FIRST: it is what the reader has
   // already read, and a detail that repeats it is noise.
   const headline = shit_1170_queue_key_action_line_fun(transaction);
+  // --- WHY A GONE KEY SAYS ONLY THAT IT IS GONE: the chain answered and
+  // the key was not in the answer, so there is no reach left to read.
+  // saying "ANY METHOD" or "NO ALLOWANCE" would be a guess about a key
+  // that is not there, and a guess written like a fact is worse than no
+  // line at all.
+  if (details.status === "gone") {
+    lines.push("THE KEY IS NOT ON THIS ACCOUNT");
+    return lines;
+  }
   // --- WHY AN UNREAD KEY SAYS ONLY THAT IT COULD NOT BE READ: a key
   // whose reach the chain did not answer for is a key about which
   // NOTHING is known. saying "ANY METHOD" would be a guess that reads
   // like a fact, and a reader who approved it on that would be
   // approving something nobody read.
-  if (!details.resolved) {
+  if (details.status === "unread") {
     lines.push("THE KEY'S REACH COULD NOT BE READ");
     return lines;
   }

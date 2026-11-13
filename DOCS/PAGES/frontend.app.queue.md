@@ -21,9 +21,12 @@ names the contract and the methods, so an add shows only the ALLOWANCE
 under it, while a remove's headline is just the public key and the
 reach says all of it. an ADD's reach comes from the QUEUE, and a
 REMOVE's reach comes from the CHAIN, which is the one that knows what a
-key on the account may call. the feed card shows the same reach the
-same way, so a reader who saw the post and then opens the batch reads
-one story.
+key on the account may call. a remove has THREE answers: the chain HAS
+the key and the page shows its reach, the chain answered and the key was
+NOT on the account and the page says THE KEY IS NOT ON THIS ACCOUNT, or
+the chain did not answer and the page says THE KEY'S REACH COULD NOT BE
+READ. the feed card shows the same reach the same way, so a reader who
+saw the post and then opens the batch reads one story.
 
 ```html
 <body>
