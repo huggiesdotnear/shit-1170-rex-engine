@@ -1,7 +1,7 @@
 // ========================================
 // BIN
-// the logic behind the vault bins: the bins that do db work on a vault
-// from the outside.
+// the logic behind the db admin bins: the bins that do db work on a
+// vault from the outside.
 //
 // --- WHY --- THIS IS IN THE LIB AND NOT IN THE BIN FILES: the bins are
 // four entry points that all need the same things — the db path, the
@@ -14,15 +14,15 @@
 // that changes the db from outside the app goes through a bin, so the
 // rules of the db live in one place and the app never has to know that
 // the bins exist.
-pub mod vault_bin_args_fun;
-pub mod vault_bin_backup_fun;
-pub mod vault_bin_db_fun;
-pub mod vault_bin_export_fun;
-pub mod vault_bin_list_fun;
-pub mod vault_bin_now_fun;
-pub mod vault_bin_prune_fun;
+pub mod db_admin_args_fun;
+pub mod db_admin_backup_fun;
+pub mod db_admin_db_fun;
+pub mod db_admin_export_fun;
+pub mod db_admin_list_fun;
+pub mod db_admin_now_fun;
+pub mod db_admin_prune_fun;
 #[cfg(test)]
-pub mod vault_bin_test;
+pub mod db_admin_test;
 // ========================================
 // copyright 2026 by sleet.near
 // ========================================

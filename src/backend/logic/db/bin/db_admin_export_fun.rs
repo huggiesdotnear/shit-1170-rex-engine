@@ -1,5 +1,5 @@
 // ========================================
-// VAULT_BIN_EXPORT_FUN
+// DB_ADMIN_EXPORT_FUN
 // the rows of a vault as json, and the json back into a vault.
 //
 // --- WHY --- THE EXPORT IS JSON and not sql: json is the shape the
@@ -29,13 +29,13 @@ use sqlx::{Row, SqlitePool};
 // --- WHY --- THE ROWS ARE READ AS TYPED TUPLES and not as json blobs:
 // the export has to write the nulls as nulls and the numbers as
 // numbers, and a row read into a tuple keeps its types.
-pub async fn vault_bin_export_fun(
+pub async fn db_admin_export_fun(
     pool: &SqlitePool,
     with_api_keys: bool,
 ) -> Result<Value, sqlx::Error> {
     let mut export = json!({
         "version": 1,
-        "exported_at": crate::backend::logic::db::bin::vault_bin_now_fun::now_ms_fun(),
+        "exported_at": crate::backend::logic::db::bin::db_admin_now_fun::now_ms_fun(),
     });
 
     // --- the api keys -------------------
@@ -215,7 +215,7 @@ pub async fn vault_bin_export_fun(
 //
 // --- WHY --- THE COUNT IS RETURNED: the person who ran the bin wants to
 // know how much landed, and "it worked" is not a number.
-pub async fn vault_bin_import_fun(
+pub async fn db_admin_import_fun(
     pool: &SqlitePool,
     export: &Value,
 ) -> Result<(u64, u64, u64, u64, u64), sqlx::Error> {
@@ -241,13 +241,13 @@ pub async fn vault_bin_import_fun(
                   when_at = excluded.when_at,
                   updated_at = excluded.updated_at",
             )
-            .bind(vault_bin_json_str_fun(item, "queue_id"))
-            .bind(vault_bin_json_opt_str_fun(item, "what"))
-            .bind(vault_bin_json_opt_str_fun(item, "when"))
-            .bind(vault_bin_json_opt_str_fun(item, "why"))
-            .bind(vault_bin_json_opt_int_fun(item, "when_at"))
-            .bind(vault_bin_json_int_fun(item, "created_at"))
-            .bind(vault_bin_json_int_fun(item, "updated_at"))
+            .bind(db_admin_json_str_fun(item, "queue_id"))
+            .bind(db_admin_json_opt_str_fun(item, "what"))
+            .bind(db_admin_json_opt_str_fun(item, "when"))
+            .bind(db_admin_json_opt_str_fun(item, "why"))
+            .bind(db_admin_json_opt_int_fun(item, "when_at"))
+            .bind(db_admin_json_int_fun(item, "created_at"))
+            .bind(db_admin_json_int_fun(item, "updated_at"))
             .execute(&mut *transaction)
             .await?;
             queues += result.rows_affected();
@@ -274,16 +274,16 @@ pub async fn vault_bin_import_fun(
                   deposit = excluded.deposit,
                   updated_at = excluded.updated_at",
             )
-            .bind(vault_bin_json_str_fun(item, "tx_id"))
-            .bind(vault_bin_json_str_fun(item, "queue_id"))
-            .bind(vault_bin_json_int_fun(item, "position"))
-            .bind(vault_bin_json_str_fun(item, "contract_id"))
-            .bind(vault_bin_json_str_fun(item, "method"))
-            .bind(vault_bin_json_str_fun(item, "args"))
-            .bind(vault_bin_json_opt_str_fun(item, "gas"))
-            .bind(vault_bin_json_opt_str_fun(item, "deposit"))
-            .bind(vault_bin_json_int_fun(item, "created_at"))
-            .bind(vault_bin_json_int_fun(item, "updated_at"))
+            .bind(db_admin_json_str_fun(item, "tx_id"))
+            .bind(db_admin_json_str_fun(item, "queue_id"))
+            .bind(db_admin_json_int_fun(item, "position"))
+            .bind(db_admin_json_str_fun(item, "contract_id"))
+            .bind(db_admin_json_str_fun(item, "method"))
+            .bind(db_admin_json_str_fun(item, "args"))
+            .bind(db_admin_json_opt_str_fun(item, "gas"))
+            .bind(db_admin_json_opt_str_fun(item, "deposit"))
+            .bind(db_admin_json_int_fun(item, "created_at"))
+            .bind(db_admin_json_int_fun(item, "updated_at"))
             .execute(&mut *transaction)
             .await?;
             transactions += result.rows_affected();
@@ -303,13 +303,13 @@ pub async fn vault_bin_import_fun(
                   tx_hash = excluded.tx_hash,
                   updated_at = excluded.updated_at",
             )
-            .bind(vault_bin_json_str_fun(item, "queue_id"))
-            .bind(vault_bin_json_str_fun(item, "tx_id"))
-            .bind(vault_bin_json_str_fun(item, "account_id"))
-            .bind(vault_bin_json_str_fun(item, "status"))
-            .bind(vault_bin_json_opt_str_fun(item, "tx_hash"))
-            .bind(vault_bin_json_int_fun(item, "created_at"))
-            .bind(vault_bin_json_int_fun(item, "updated_at"))
+            .bind(db_admin_json_str_fun(item, "queue_id"))
+            .bind(db_admin_json_str_fun(item, "tx_id"))
+            .bind(db_admin_json_str_fun(item, "account_id"))
+            .bind(db_admin_json_str_fun(item, "status"))
+            .bind(db_admin_json_opt_str_fun(item, "tx_hash"))
+            .bind(db_admin_json_int_fun(item, "created_at"))
+            .bind(db_admin_json_int_fun(item, "updated_at"))
             .execute(&mut *transaction)
             .await?;
             accounts += result.rows_affected();
@@ -336,18 +336,18 @@ pub async fn vault_bin_import_fun(
                   dex_id = excluded.dex_id,
                   updated_at = excluded.updated_at",
             )
-            .bind(vault_bin_json_str_fun(item, "swap_id"))
-            .bind(vault_bin_json_opt_str_fun(item, "what"))
-            .bind(vault_bin_json_opt_str_fun(item, "when"))
-            .bind(vault_bin_json_opt_str_fun(item, "why"))
-            .bind(vault_bin_json_opt_int_fun(item, "when_at"))
-            .bind(vault_bin_json_str_fun(item, "token_in"))
-            .bind(vault_bin_json_str_fun(item, "amount_in"))
-            .bind(vault_bin_json_str_fun(item, "token_out"))
-            .bind(vault_bin_json_opt_str_fun(item, "amount_out"))
-            .bind(vault_bin_json_opt_str_fun(item, "dex_id"))
-            .bind(vault_bin_json_int_fun(item, "created_at"))
-            .bind(vault_bin_json_int_fun(item, "updated_at"))
+            .bind(db_admin_json_str_fun(item, "swap_id"))
+            .bind(db_admin_json_opt_str_fun(item, "what"))
+            .bind(db_admin_json_opt_str_fun(item, "when"))
+            .bind(db_admin_json_opt_str_fun(item, "why"))
+            .bind(db_admin_json_opt_int_fun(item, "when_at"))
+            .bind(db_admin_json_str_fun(item, "token_in"))
+            .bind(db_admin_json_str_fun(item, "amount_in"))
+            .bind(db_admin_json_str_fun(item, "token_out"))
+            .bind(db_admin_json_opt_str_fun(item, "amount_out"))
+            .bind(db_admin_json_opt_str_fun(item, "dex_id"))
+            .bind(db_admin_json_int_fun(item, "created_at"))
+            .bind(db_admin_json_int_fun(item, "updated_at"))
             .execute(&mut *transaction)
             .await?;
             swaps += result.rows_affected();
@@ -367,13 +367,13 @@ pub async fn vault_bin_import_fun(
                   amount_out = excluded.amount_out,
                   updated_at = excluded.updated_at",
             )
-            .bind(vault_bin_json_str_fun(item, "swap_id"))
-            .bind(vault_bin_json_str_fun(item, "account_id"))
-            .bind(vault_bin_json_str_fun(item, "status"))
-            .bind(vault_bin_json_opt_str_fun(item, "tx_hash"))
-            .bind(vault_bin_json_opt_str_fun(item, "amount_out"))
-            .bind(vault_bin_json_int_fun(item, "created_at"))
-            .bind(vault_bin_json_int_fun(item, "updated_at"))
+            .bind(db_admin_json_str_fun(item, "swap_id"))
+            .bind(db_admin_json_str_fun(item, "account_id"))
+            .bind(db_admin_json_str_fun(item, "status"))
+            .bind(db_admin_json_opt_str_fun(item, "tx_hash"))
+            .bind(db_admin_json_opt_str_fun(item, "amount_out"))
+            .bind(db_admin_json_int_fun(item, "created_at"))
+            .bind(db_admin_json_int_fun(item, "updated_at"))
             .execute(&mut *transaction)
             .await?;
             swap_accounts += result.rows_affected();
@@ -392,7 +392,7 @@ pub async fn vault_bin_import_fun(
 // --- WHY --- THE HELPERS TAKE A DEFAULT and not a failure: an export
 // that was hand-edited and lost a field should still import, with the
 // missing field filled in rather than the whole import refused.
-fn vault_bin_json_str_fun(item: &Value, key: &str) -> String {
+fn db_admin_json_str_fun(item: &Value, key: &str) -> String {
     item.get(key)
         .and_then(Value::as_str)
         .unwrap_or_default()
@@ -400,19 +400,19 @@ fn vault_bin_json_str_fun(item: &Value, key: &str) -> String {
 }
 
 // a string field that may be null.
-fn vault_bin_json_opt_str_fun(item: &Value, key: &str) -> Option<String> {
+fn db_admin_json_opt_str_fun(item: &Value, key: &str) -> Option<String> {
     item.get(key)
         .and_then(Value::as_str)
         .map(|value| value.to_string())
 }
 
 // an integer field.
-fn vault_bin_json_int_fun(item: &Value, key: &str) -> i64 {
+fn db_admin_json_int_fun(item: &Value, key: &str) -> i64 {
     item.get(key).and_then(Value::as_i64).unwrap_or(0)
 }
 
 // an integer field that may be null.
-fn vault_bin_json_opt_int_fun(item: &Value, key: &str) -> Option<i64> {
+fn db_admin_json_opt_int_fun(item: &Value, key: &str) -> Option<i64> {
     item.get(key).and_then(Value::as_i64)
 }
 // ========================================

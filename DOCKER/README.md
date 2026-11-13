@@ -60,28 +60,28 @@ to debug over plain http instead, uncomment the `ports:` block on the
 `http://localhost:54733` (sign-in works there because localhost is a
 secure context).
 
-## the vault bins
+## the db admin bins
 
-the vault bins (`vault-list`, `vault-prune`, `vault-backup`,
-`vault-export`, `vault-import`) are in the image, so they can be run
+the db admin bins (`db-admin-list`, `db-admin-prune`, `db-admin-backup`,
+`db-admin-export`, `db-admin-import`) are in the image, so they can be run
 against the production vault without copying the db off the host.
 
 ```sh
 docker compose -f DOCKER/docker-compose.yml exec \
   shit-1170-rex-engine-backend \
-  vault-list --db /home/shit-1170/.shit-1170-rex-engine/shit-1170-rex-engine.db
+  db-admin-list --db /home/shit-1170/.shit-1170-rex-engine/shit-1170-rex-engine.db
 ```
 
-- `vault-list` — shows what is in the vault. it only reads.
-- `vault-prune` — takes old queued batches and swaps off the vault. it
+- `db-admin-list` — shows what is in the vault. it only reads.
+- `db-admin-prune` — takes old queued batches and swaps off the vault. it
   is a **dry run until `--confirm` is given**, and it leaves the rows
   that carry a `tx_hash` alone unless `--include-sent` is given.
-- `vault-backup` — takes a safe copy, with sqlite's own backup. safe
+- `db-admin-backup` — takes a safe copy, with sqlite's own backup. safe
   to run while the app is writing.
-- `vault-export` / `vault-import` — move the data as json, between
+- `db-admin-export` / `db-admin-import` — move the data as json, between
   this vault and a local one.
 
-**take a `vault-backup` before a `vault-prune` on the production
+**take a `db-admin-backup` before a `db-admin-prune` on the production
 vault.** the prune has no undo.
 
 **never test against the production vault.** point the app at a local

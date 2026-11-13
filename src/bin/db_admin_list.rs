@@ -1,9 +1,9 @@
 // ========================================
-// VAULT_LIST
+// DB_ADMIN_LIST
 // the bin that shows what is in a vault.
 //
 // usage:
-//   vault-list --db <path> [--limit <n>] [--swaps] [--queues]
+//   db-admin-list --db <path> [--limit <n>] [--swaps] [--queues]
 //
 // --- WHY --- IT PRINTS AND DOES NOT WRITE: it is the thing to run
 // BEFORE a prune, and a bin that reads must not change what it reads.
@@ -11,23 +11,22 @@
 // --- WHY --- THE LIMITS ARE PER TABLE and not one number for the whole
 // list: a vault with a thousand queues and three swaps is interesting
 // for different reasons, and one limit for both would hide one of them.
-use shit_1170_rex_engine::backend::logic::db::bin::vault_bin_args_fun::{
-    vault_bin_args_fun, vault_bin_flag_fun, vault_bin_switch_fun,
+use shit_1170_rex_engine::backend::logic::db::bin::db_admin_args_fun::{
+    db_admin_args_fun, db_admin_flag_fun, db_admin_switch_fun,
 };
-use shit_1170_rex_engine::backend::logic::db::bin::vault_bin_db_fun::{
-    vault_bin_db_has_tables_fun, vault_bin_db_open_fun, vault_bin_db_path_fun,
+use shit_1170_rex_engine::backend::logic::db::bin::db_admin_db_fun::{
+    db_admin_db_has_tables_fun, db_admin_db_open_fun, db_admin_db_path_fun,
 };
-use shit_1170_rex_engine::backend::logic::db::bin::vault_bin_list_fun::{
-    vault_bin_list_counts_fun, vault_bin_list_queues_fun, vault_bin_list_swaps_fun,
-    vault_bin_when_fun,
+use shit_1170_rex_engine::backend::logic::db::bin::db_admin_list_fun::{
+    db_admin_list_counts_fun, db_admin_list_queues_fun, db_admin_list_swaps_fun, db_admin_when_fun,
 };
 // ========================================
 #[tokio::main]
 async fn main() {
     let words: Vec<String> = std::env::args().skip(1).collect();
-    let args = vault_bin_args_fun(&words);
+    let args = db_admin_args_fun(&words);
 
-    if vault_bin_switch_fun(&args, "help") {
+    if db_admin_switch_fun(&args, "help") {
         print_help_fun();
         return;
     }
@@ -53,12 +52,12 @@ async fn main() {
                 .cloned()
                 .unwrap_or_else(|| unknown_switches.first().cloned().unwrap_or_default())
         );
-        eprintln!("run `vault-list --help` to see the flags");
+        eprintln!("run `db-admin-list --help` to see the flags");
         std::process::exit(2);
     }
 
     // --- THE LIMIT ---------------------
-    let limit = match vault_bin_flag_fun(&args, "limit") {
+    let limit = match db_admin_flag_fun(&args, "limit") {
         Some(value) => match value.parse::<i64>() {
             Ok(limit) => Some(limit),
             Err(_) => {
@@ -70,15 +69,15 @@ async fn main() {
     };
 
     // --- THE DB ------------------------
-    let db_path = vault_bin_db_path_fun(args.db_path.clone());
-    let pool = match vault_bin_db_open_fun(&db_path).await {
+    let db_path = db_admin_db_path_fun(args.db_path.clone());
+    let pool = match db_admin_db_open_fun(&db_path).await {
         Ok(pool) => pool,
         Err(err) => {
             eprintln!("could not open the db at {}: {err}", db_path.display());
             std::process::exit(1);
         }
     };
-    match vault_bin_db_has_tables_fun(&pool).await {
+    match db_admin_db_has_tables_fun(&pool).await {
         Ok(true) => {}
         Ok(false) => {
             eprintln!("the db at {} is not a shit-1170 vault.", db_path.display());
@@ -92,7 +91,7 @@ async fn main() {
 
     // --- THE COUNTS --------------------
     println!("db: {}", db_path.display());
-    let counts = match vault_bin_list_counts_fun(&pool).await {
+    let counts = match db_admin_list_counts_fun(&pool).await {
         Ok(counts) => counts,
         Err(err) => {
             eprintln!("could not count the rows: {err}");
@@ -104,12 +103,11 @@ async fn main() {
     }
 
     // --- THE QUEUES --------------------
-    let only_swaps = vault_bin_switch_fun(&args, "swaps") && !vault_bin_switch_fun(&args, "queues");
-    let only_queues =
-        vault_bin_switch_fun(&args, "queues") && !vault_bin_switch_fun(&args, "swaps");
+    let only_swaps = db_admin_switch_fun(&args, "swaps") && !db_admin_switch_fun(&args, "queues");
+    let only_queues = db_admin_switch_fun(&args, "queues") && !db_admin_switch_fun(&args, "swaps");
 
     if !only_swaps {
-        let queues = match vault_bin_list_queues_fun(&pool, limit).await {
+        let queues = match db_admin_list_queues_fun(&pool, limit).await {
             Ok(queues) => queues,
             Err(err) => {
                 eprintln!("could not read the queues: {err}");
@@ -126,14 +124,14 @@ async fn main() {
                 queue.transactions,
                 queue.accounts,
                 queue.sent,
-                vault_bin_when_fun(queue.created_at)
+                db_admin_when_fun(queue.created_at)
             );
         }
     }
 
     // --- THE SWAPS ---------------------
     if !only_queues {
-        let swaps = match vault_bin_list_swaps_fun(&pool, limit).await {
+        let swaps = match db_admin_list_swaps_fun(&pool, limit).await {
             Ok(swaps) => swaps,
             Err(err) => {
                 eprintln!("could not read the swaps: {err}");
@@ -149,7 +147,7 @@ async fn main() {
                 swap.what.clone().unwrap_or_else(|| String::from("-")),
                 swap.accounts,
                 swap.sent,
-                vault_bin_when_fun(swap.created_at)
+                db_admin_when_fun(swap.created_at)
             );
         }
     }
@@ -158,10 +156,10 @@ async fn main() {
 // the usage text.
 fn print_help_fun() {
     println!(
-        r#"vault-list - show what is in a vault
+        r#"db-admin-list - show what is in a vault
 
 usage:
-  vault-list --db <path> [--limit <n>] [--queues] [--swaps]
+  db-admin-list --db <path> [--limit <n>] [--queues] [--swaps]
 
   --db <path>    the db file to look at
   --limit <n>    how many of each to show (default 50)

@@ -168,9 +168,9 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
     --mount=type=cache,target=/usr/local/cargo/git,sharing=locked \
     touch src/main.rs src/bin/*.rs \
     && cargo build --release --bins \
-    && mkdir -p target/release/vault \
+    && mkdir -p target/release/db-admin \
     && for bin in list prune backup export import; do \
-         cp "target/release/vault_$bin" "target/release/vault/vault-$bin"; \
+         cp "target/release/db_admin_$bin" "target/release/db-admin/db-admin-$bin"; \
        done
 
 # ========================================
@@ -205,13 +205,13 @@ RUN mkdir -p /home/shit-1170/.shit-1170-rex-engine \
     && chown -R shit1170:shit1170 /home/shit-1170
 
 COPY --from=rust-builder /build/target/release/shit-1170-rex-engine /usr/local/bin/shit-1170-backend
-# --- WHY: the vault bins are in the image too ---
+# --- WHY: the db admin bins are in the image too ---
 # the bins are the way to do db work on a vault from outside the app,
 # and the production vault lives on a docker volume. so the bins have
 # to be reachable inside the container, or the only way to prune the
 # production vault would be to copy the db off the host first.
 #
-# `docker compose exec shit-1170-rex-engine-backend vault-prune --db ...`
+# `docker compose exec shit-1170-rex-engine-backend db-admin-prune --db ...`
 # is the command that does it.
 #
 # --- WHY: they come in as ONE COPY of a folder ---
@@ -220,7 +220,7 @@ COPY --from=rust-builder /build/target/release/shit-1170-rex-engine /usr/local/b
 # COPY lines meant five separate lookups, and a lookup that missed one
 # file failed the whole build with a checksum error while the rest of
 # the layer sat cached.
-COPY --from=rust-builder /build/target/release/vault /usr/local/bin/
+COPY --from=rust-builder /build/target/release/db-admin /usr/local/bin/
 COPY --from=frontend /src/static /app/static
 
 # --- WHY: ServeDir::new("static") is a RELATIVE path ---

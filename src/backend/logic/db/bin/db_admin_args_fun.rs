@@ -1,6 +1,6 @@
 // ========================================
-// VAULT_BIN_ARGS_FUN
-// the flags every vault bin takes, and the parser that reads them.
+// DB_ADMIN_ARGS_FUN
+// the flags every db admin bin takes, and the parser that reads them.
 //
 // --- WHY --- there is NO clap and NO arg-parser crate: the bins take a
 // handful of flags, and a dependency for that would be more code than
@@ -29,7 +29,7 @@ use std::path::PathBuf;
 // own values, because "30" is thirty days in one bin and a unix second
 // in another, and the shared parser cannot know which.
 #[derive(Debug, Clone, Default)]
-pub struct VAULT_BIN_ARGS {
+pub struct DB_ADMIN_ARGS {
     // the db file's path, when `--db` was given.
     pub db_path: Option<PathBuf>,
     // the flags that were given, by name, without the `--`.
@@ -63,8 +63,8 @@ pub struct VAULT_BIN_ARGS {
 // with a dash: `--db --weird` is the caller's mistake, and a db path
 // that starts with a dash is rarer than a typo. the bin's own checks
 // catch the mistake.
-pub fn vault_bin_args_fun(words: &[String]) -> VAULT_BIN_ARGS {
-    let mut args = VAULT_BIN_ARGS::default();
+pub fn db_admin_args_fun(words: &[String]) -> DB_ADMIN_ARGS {
+    let mut args = DB_ADMIN_ARGS::default();
     let mut index = 0;
 
     while index < words.len() {
@@ -122,12 +122,12 @@ pub fn vault_bin_args_fun(words: &[String]) -> VAULT_BIN_ARGS {
 // ========================================
 // --- HELPERS ----------------------------
 // the value of a flag, or None when it was not given.
-pub fn vault_bin_flag_fun<'a>(args: &'a VAULT_BIN_ARGS, name: &str) -> Option<&'a str> {
+pub fn db_admin_flag_fun<'a>(args: &'a DB_ADMIN_ARGS, name: &str) -> Option<&'a str> {
     args.flags.get(name).map(|value| value.as_str())
 }
 
 // was this switch given?
-pub fn vault_bin_switch_fun(args: &VAULT_BIN_ARGS, name: &str) -> bool {
+pub fn db_admin_switch_fun(args: &DB_ADMIN_ARGS, name: &str) -> bool {
     args.switches.iter().any(|switch| switch == name)
 }
 
@@ -135,7 +135,7 @@ pub fn vault_bin_switch_fun(args: &VAULT_BIN_ARGS, name: &str) -> bool {
 //
 // --- WHY --- a COMMA separated list and not a repeated flag: the shell
 // line stays short and a script can build it in one string.
-pub fn vault_bin_id_list_fun(args: &VAULT_BIN_ARGS, name: &str) -> Vec<String> {
+pub fn db_admin_id_list_fun(args: &DB_ADMIN_ARGS, name: &str) -> Vec<String> {
     match args.flags.get(name) {
         Some(value) => value
             .split(',')

@@ -1,9 +1,9 @@
 // ========================================
-// VAULT_IMPORT
+// DB_ADMIN_IMPORT
 // the bin that puts an export back into a vault.
 //
 // usage:
-//   vault-import --db <path> --from <file> [--confirm]
+//   db-admin-import --db <path> --from <file> [--confirm]
 //
 // --- WHY --- IT IS A DRY RUN UNTIL `--confirm` IS GIVEN: it writes rows
 // into a vault and there is no undo.
@@ -15,20 +15,20 @@
 // --- WHY --- IT IS AN UPSERT and not an insert: an import into a vault
 // that already holds some of the rows brings the file's rows in and
 // leaves the rest alone.
-use shit_1170_rex_engine::backend::logic::db::bin::vault_bin_args_fun::{
-    vault_bin_args_fun, vault_bin_flag_fun, vault_bin_switch_fun,
+use shit_1170_rex_engine::backend::logic::db::bin::db_admin_args_fun::{
+    db_admin_args_fun, db_admin_flag_fun, db_admin_switch_fun,
 };
-use shit_1170_rex_engine::backend::logic::db::bin::vault_bin_db_fun::{
-    vault_bin_db_has_tables_fun, vault_bin_db_open_fun, vault_bin_db_path_fun,
+use shit_1170_rex_engine::backend::logic::db::bin::db_admin_db_fun::{
+    db_admin_db_has_tables_fun, db_admin_db_open_fun, db_admin_db_path_fun,
 };
-use shit_1170_rex_engine::backend::logic::db::bin::vault_bin_export_fun::vault_bin_import_fun;
+use shit_1170_rex_engine::backend::logic::db::bin::db_admin_export_fun::db_admin_import_fun;
 // ========================================
 #[tokio::main]
 async fn main() {
     let words: Vec<String> = std::env::args().skip(1).collect();
-    let args = vault_bin_args_fun(&words);
+    let args = db_admin_args_fun(&words);
 
-    if vault_bin_switch_fun(&args, "help") {
+    if db_admin_switch_fun(&args, "help") {
         print_help_fun();
         return;
     }
@@ -54,12 +54,12 @@ async fn main() {
                 .cloned()
                 .unwrap_or_else(|| unknown_switches.first().cloned().unwrap_or_default())
         );
-        eprintln!("run `vault-import --help` to see the flags");
+        eprintln!("run `db-admin-import --help` to see the flags");
         std::process::exit(2);
     }
 
     // --- THE FILE ----------------------
-    let from = match vault_bin_flag_fun(&args, "from") {
+    let from = match db_admin_flag_fun(&args, "from") {
         Some(path) => path.to_string(),
         None => {
             eprintln!("--from <file> is needed: that is the export to bring in.");
@@ -82,15 +82,15 @@ async fn main() {
     };
 
     // --- THE DB ------------------------
-    let db_path = vault_bin_db_path_fun(args.db_path.clone());
-    let pool = match vault_bin_db_open_fun(&db_path).await {
+    let db_path = db_admin_db_path_fun(args.db_path.clone());
+    let pool = match db_admin_db_open_fun(&db_path).await {
         Ok(pool) => pool,
         Err(err) => {
             eprintln!("could not open the db at {}: {err}", db_path.display());
             std::process::exit(1);
         }
     };
-    match vault_bin_db_has_tables_fun(&pool).await {
+    match db_admin_db_has_tables_fun(&pool).await {
         Ok(true) => {}
         Ok(false) => {
             eprintln!("the db at {} is not a shit-1170 vault.", db_path.display());
@@ -126,7 +126,7 @@ async fn main() {
     }
 
     // --- THE DRY RUN -------------------
-    if !vault_bin_switch_fun(&args, "confirm") {
+    if !db_admin_switch_fun(&args, "confirm") {
         println!();
         println!("this was a dry run. nothing was written.");
         println!("add --confirm to actually bring the rows in.");
@@ -134,7 +134,7 @@ async fn main() {
     }
 
     // --- THE IMPORT --------------------
-    match vault_bin_import_fun(&pool, &export).await {
+    match db_admin_import_fun(&pool, &export).await {
         Ok((queues, transactions, accounts, swaps, swap_accounts)) => {
             println!();
             println!(
@@ -152,10 +152,10 @@ async fn main() {
 // the usage text.
 fn print_help_fun() {
     println!(
-        r#"vault-import - put an export back into a vault
+        r#"db-admin-import - put an export back into a vault
 
 usage:
-  vault-import --db <path> --from <file> [--confirm]
+  db-admin-import --db <path> --from <file> [--confirm]
 
   --db <path>    the db file to write into
   --from <file>  the export to bring in

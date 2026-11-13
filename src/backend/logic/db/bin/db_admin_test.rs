@@ -1,5 +1,5 @@
 // ========================================
-// the vault bins, tested against a real sqlite file.
+// the db admin bins, tested against a real sqlite file.
 //
 // the db is a temp file, not an in-memory one, because the production db
 // is a file and the two can differ: WAL, the journal mode, and the way
@@ -115,9 +115,9 @@ async fn count_fun(pool: &sqlx::SqlitePool, table: &str) -> i64 {
 // --- THE ARGS --------------------------
 // the parser reads the flags the bins take.
 #[tokio::test]
-async fn vault_bin_args_reads_the_flags_fun() {
-    use crate::backend::logic::db::bin::vault_bin_args_fun::{
-        vault_bin_args_fun, vault_bin_flag_fun, vault_bin_id_list_fun, vault_bin_switch_fun,
+async fn db_admin_args_reads_the_flags_fun() {
+    use crate::backend::logic::db::bin::db_admin_args_fun::{
+        db_admin_args_fun, db_admin_flag_fun, db_admin_id_list_fun, db_admin_switch_fun,
     };
 
     let words: Vec<String> = [
@@ -133,70 +133,68 @@ async fn vault_bin_args_reads_the_flags_fun() {
     .map(|word| word.to_string())
     .collect();
 
-    let args = vault_bin_args_fun(&words);
+    let args = db_admin_args_fun(&words);
 
     assert_eq!(
         args.db_path.as_ref().map(|path| path.display().to_string()),
         Some(String::from("/tmp/vault.db"))
     );
-    assert_eq!(vault_bin_flag_fun(&args, "older-than"), Some("30"));
-    assert!(vault_bin_switch_fun(&args, "never-sent"));
-    assert!(!vault_bin_switch_fun(&args, "include-sent"));
+    assert_eq!(db_admin_flag_fun(&args, "older-than"), Some("30"));
+    assert!(db_admin_switch_fun(&args, "never-sent"));
+    assert!(!db_admin_switch_fun(&args, "include-sent"));
     assert_eq!(
-        vault_bin_id_list_fun(&args, "queue-ids"),
+        db_admin_id_list_fun(&args, "queue-ids"),
         vec![String::from("a"), String::from("b"), String::from("c")]
     );
 }
 
 // the parser takes the value in the flag too.
 #[tokio::test]
-async fn vault_bin_args_takes_the_value_in_the_flag_fun() {
-    use crate::backend::logic::db::bin::vault_bin_args_fun::{
-        vault_bin_args_fun, vault_bin_flag_fun,
-    };
+async fn db_admin_args_takes_the_value_in_the_flag_fun() {
+    use crate::backend::logic::db::bin::db_admin_args_fun::{db_admin_args_fun, db_admin_flag_fun};
 
     let words: Vec<String> = ["--db=/tmp/vault.db", "--older-than=30"]
         .iter()
         .map(|word| word.to_string())
         .collect();
 
-    let args = vault_bin_args_fun(&words);
+    let args = db_admin_args_fun(&words);
 
     assert_eq!(
         args.db_path.as_ref().map(|path| path.display().to_string()),
         Some(String::from("/tmp/vault.db"))
     );
-    assert_eq!(vault_bin_flag_fun(&args, "older-than"), Some("30"));
+    assert_eq!(db_admin_flag_fun(&args, "older-than"), Some("30"));
 }
 
 // a flag with nothing after it is a switch and not a flag with an
 // empty value.
 #[tokio::test]
-async fn vault_bin_args_reads_a_bare_flag_as_a_switch_fun() {
-    use crate::backend::logic::db::bin::vault_bin_args_fun::{
-        vault_bin_args_fun, vault_bin_flag_fun, vault_bin_switch_fun,
+async fn db_admin_args_reads_a_bare_flag_as_a_switch_fun() {
+    use crate::backend::logic::db::bin::db_admin_args_fun::{
+        db_admin_args_fun, db_admin_flag_fun, db_admin_switch_fun,
     };
 
     let words: Vec<String> = ["--confirm"].iter().map(|word| word.to_string()).collect();
 
-    let args = vault_bin_args_fun(&words);
+    let args = db_admin_args_fun(&words);
 
-    assert!(vault_bin_switch_fun(&args, "confirm"));
-    assert_eq!(vault_bin_flag_fun(&args, "confirm"), None);
+    assert!(db_admin_switch_fun(&args, "confirm"));
+    assert_eq!(db_admin_flag_fun(&args, "confirm"), None);
 }
 
 // ========================================
 // --- THE PRUNE -------------------------
 // a prune by age takes the old queue and leaves the new one.
 #[tokio::test]
-async fn vault_prune_takes_the_old_queue_fun() {
-    use crate::backend::logic::db::bin::vault_bin_prune_fun::{
-        VAULT_PRUNE_FILTERS, vault_prune_delete_fun, vault_prune_queue_plan_fun,
+async fn db_admin_prune_takes_the_old_queue_fun() {
+    use crate::backend::logic::db::bin::db_admin_prune_fun::{
+        DB_ADMIN_PRUNE_FILTERS, db_admin_prune_delete_fun, db_admin_prune_queue_plan_fun,
     };
 
     let db = TEMP_DB::new_fun("prune-old");
     let pool = db.pool_fun().await;
-    let now = crate::backend::logic::db::bin::vault_bin_now_fun::now_ms_fun();
+    let now = crate::backend::logic::db::bin::db_admin_now_fun::now_ms_fun();
 
     seed_queue_fun(
         &pool,
@@ -209,21 +207,21 @@ async fn vault_prune_takes_the_old_queue_fun() {
     .await;
     seed_queue_fun(&pool, "new", "tx-new", "alice.near", now, None).await;
 
-    let filters = VAULT_PRUNE_FILTERS {
+    let filters = DB_ADMIN_PRUNE_FILTERS {
         older_than_days: Some(30),
-        ..VAULT_PRUNE_FILTERS::default()
+        ..DB_ADMIN_PRUNE_FILTERS::default()
     };
 
-    let plan = vault_prune_queue_plan_fun(&pool, &filters)
+    let plan = db_admin_prune_queue_plan_fun(&pool, &filters)
         .await
         .expect("the plan should read");
     assert_eq!(plan, vec![String::from("old")]);
 
-    let plan = crate::backend::logic::db::bin::vault_bin_prune_fun::VAULT_PRUNE_PLAN {
+    let plan = crate::backend::logic::db::bin::db_admin_prune_fun::DB_ADMIN_PRUNE_PLAN {
         queue_ids: plan,
         ..Default::default()
     };
-    vault_prune_delete_fun(&pool, &plan)
+    db_admin_prune_delete_fun(&pool, &plan)
         .await
         .expect("the delete should run");
 
@@ -235,14 +233,14 @@ async fn vault_prune_takes_the_old_queue_fun() {
 
 // a prune leaves a queue that was sent alone.
 #[tokio::test]
-async fn vault_prune_leaves_the_history_alone_fun() {
-    use crate::backend::logic::db::bin::vault_bin_prune_fun::{
-        VAULT_PRUNE_FILTERS, vault_prune_delete_fun, vault_prune_queue_plan_fun,
+async fn db_admin_prune_leaves_the_history_alone_fun() {
+    use crate::backend::logic::db::bin::db_admin_prune_fun::{
+        DB_ADMIN_PRUNE_FILTERS, db_admin_prune_delete_fun, db_admin_prune_queue_plan_fun,
     };
 
     let db = TEMP_DB::new_fun("prune-history");
     let pool = db.pool_fun().await;
-    let now = crate::backend::logic::db::bin::vault_bin_now_fun::now_ms_fun();
+    let now = crate::backend::logic::db::bin::db_admin_now_fun::now_ms_fun();
 
     seed_queue_fun(
         &pool,
@@ -254,21 +252,21 @@ async fn vault_prune_leaves_the_history_alone_fun() {
     )
     .await;
 
-    let filters = VAULT_PRUNE_FILTERS {
+    let filters = DB_ADMIN_PRUNE_FILTERS {
         older_than_days: Some(30),
-        ..VAULT_PRUNE_FILTERS::default()
+        ..DB_ADMIN_PRUNE_FILTERS::default()
     };
 
-    let plan = vault_prune_queue_plan_fun(&pool, &filters)
+    let plan = db_admin_prune_queue_plan_fun(&pool, &filters)
         .await
         .expect("the plan should read");
     assert!(plan.is_empty(), "a sent queue should not match");
 
-    let plan = crate::backend::logic::db::bin::vault_bin_prune_fun::VAULT_PRUNE_PLAN {
+    let plan = crate::backend::logic::db::bin::db_admin_prune_fun::DB_ADMIN_PRUNE_PLAN {
         queue_ids: plan,
         ..Default::default()
     };
-    vault_prune_delete_fun(&pool, &plan)
+    db_admin_prune_delete_fun(&pool, &plan)
         .await
         .expect("the delete should run");
 
@@ -278,14 +276,14 @@ async fn vault_prune_leaves_the_history_alone_fun() {
 
 // the include-sent flag says to take the history too.
 #[tokio::test]
-async fn vault_prune_takes_the_history_with_the_flag_fun() {
-    use crate::backend::logic::db::bin::vault_bin_prune_fun::{
-        VAULT_PRUNE_FILTERS, vault_prune_delete_fun, vault_prune_queue_plan_fun,
+async fn db_admin_prune_takes_the_history_with_the_flag_fun() {
+    use crate::backend::logic::db::bin::db_admin_prune_fun::{
+        DB_ADMIN_PRUNE_FILTERS, db_admin_prune_delete_fun, db_admin_prune_queue_plan_fun,
     };
 
     let db = TEMP_DB::new_fun("prune-include-sent");
     let pool = db.pool_fun().await;
-    let now = crate::backend::logic::db::bin::vault_bin_now_fun::now_ms_fun();
+    let now = crate::backend::logic::db::bin::db_admin_now_fun::now_ms_fun();
 
     seed_queue_fun(
         &pool,
@@ -297,22 +295,22 @@ async fn vault_prune_takes_the_history_with_the_flag_fun() {
     )
     .await;
 
-    let filters = VAULT_PRUNE_FILTERS {
+    let filters = DB_ADMIN_PRUNE_FILTERS {
         older_than_days: Some(30),
         include_sent: true,
-        ..VAULT_PRUNE_FILTERS::default()
+        ..DB_ADMIN_PRUNE_FILTERS::default()
     };
 
-    let plan = vault_prune_queue_plan_fun(&pool, &filters)
+    let plan = db_admin_prune_queue_plan_fun(&pool, &filters)
         .await
         .expect("the plan should read");
     assert_eq!(plan, vec![String::from("sent")]);
 
-    let plan = crate::backend::logic::db::bin::vault_bin_prune_fun::VAULT_PRUNE_PLAN {
+    let plan = crate::backend::logic::db::bin::db_admin_prune_fun::DB_ADMIN_PRUNE_PLAN {
         queue_ids: plan,
         ..Default::default()
     };
-    vault_prune_delete_fun(&pool, &plan)
+    db_admin_prune_delete_fun(&pool, &plan)
         .await
         .expect("the delete should run");
 
@@ -322,24 +320,24 @@ async fn vault_prune_takes_the_history_with_the_flag_fun() {
 
 // a prune by id takes that one queue and no other.
 #[tokio::test]
-async fn vault_prune_takes_the_queue_it_was_named_fun() {
-    use crate::backend::logic::db::bin::vault_bin_prune_fun::{
-        VAULT_PRUNE_FILTERS, vault_prune_queue_plan_fun,
+async fn db_admin_prune_takes_the_queue_it_was_named_fun() {
+    use crate::backend::logic::db::bin::db_admin_prune_fun::{
+        DB_ADMIN_PRUNE_FILTERS, db_admin_prune_queue_plan_fun,
     };
 
     let db = TEMP_DB::new_fun("prune-by-id");
     let pool = db.pool_fun().await;
-    let now = crate::backend::logic::db::bin::vault_bin_now_fun::now_ms_fun();
+    let now = crate::backend::logic::db::bin::db_admin_now_fun::now_ms_fun();
 
     seed_queue_fun(&pool, "one", "tx-one", "alice.near", now, None).await;
     seed_queue_fun(&pool, "two", "tx-two", "alice.near", now, None).await;
 
-    let filters = VAULT_PRUNE_FILTERS {
+    let filters = DB_ADMIN_PRUNE_FILTERS {
         queue_ids: vec![String::from("two")],
-        ..VAULT_PRUNE_FILTERS::default()
+        ..DB_ADMIN_PRUNE_FILTERS::default()
     };
 
-    let plan = vault_prune_queue_plan_fun(&pool, &filters)
+    let plan = db_admin_prune_queue_plan_fun(&pool, &filters)
         .await
         .expect("the plan should read");
     assert_eq!(plan, vec![String::from("two")]);
@@ -347,14 +345,14 @@ async fn vault_prune_takes_the_queue_it_was_named_fun() {
 
 // the swaps are only part of the plan when they were asked for.
 #[tokio::test]
-async fn vault_prune_leaves_the_swaps_alone_unless_asked_fun() {
-    use crate::backend::logic::db::bin::vault_bin_prune_fun::{
-        VAULT_PRUNE_FILTERS, vault_prune_queue_plan_fun, vault_prune_swap_plan_fun,
+async fn db_admin_prune_leaves_the_swaps_alone_unless_asked_fun() {
+    use crate::backend::logic::db::bin::db_admin_prune_fun::{
+        DB_ADMIN_PRUNE_FILTERS, db_admin_prune_queue_plan_fun, db_admin_prune_swap_plan_fun,
     };
 
     let db = TEMP_DB::new_fun("prune-swaps");
     let pool = db.pool_fun().await;
-    let now = crate::backend::logic::db::bin::vault_bin_now_fun::now_ms_fun();
+    let now = crate::backend::logic::db::bin::db_admin_now_fun::now_ms_fun();
 
     seed_queue_fun(
         &pool,
@@ -379,18 +377,18 @@ async fn vault_prune_leaves_the_swaps_alone_unless_asked_fun() {
     .expect("the swap should go in");
 
     // the queue is asked for by its age. the swap is not in the plan.
-    let filters = VAULT_PRUNE_FILTERS {
+    let filters = DB_ADMIN_PRUNE_FILTERS {
         older_than_days: Some(30),
-        ..VAULT_PRUNE_FILTERS::default()
+        ..DB_ADMIN_PRUNE_FILTERS::default()
     };
     assert_eq!(
-        vault_prune_queue_plan_fun(&pool, &filters)
+        db_admin_prune_queue_plan_fun(&pool, &filters)
             .await
             .expect("the plan should read"),
         vec![String::from("old")]
     );
     assert!(
-        vault_prune_swap_plan_fun(&pool, &filters)
+        db_admin_prune_swap_plan_fun(&pool, &filters)
             .await
             .expect("the plan should read")
             .is_empty(),
@@ -398,13 +396,13 @@ async fn vault_prune_leaves_the_swaps_alone_unless_asked_fun() {
     );
 
     // with the flag, the swap is in the plan too.
-    let filters = VAULT_PRUNE_FILTERS {
+    let filters = DB_ADMIN_PRUNE_FILTERS {
         older_than_days: Some(30),
         include_swaps: true,
-        ..VAULT_PRUNE_FILTERS::default()
+        ..DB_ADMIN_PRUNE_FILTERS::default()
     };
     assert_eq!(
-        vault_prune_swap_plan_fun(&pool, &filters)
+        db_admin_prune_swap_plan_fun(&pool, &filters)
             .await
             .expect("the plan should read"),
         vec![String::from("swap-old")]
@@ -414,24 +412,24 @@ async fn vault_prune_leaves_the_swaps_alone_unless_asked_fun() {
 // the never-sent filter takes the queues nobody sent and leaves the
 // ones somebody did.
 #[tokio::test]
-async fn vault_prune_never_sent_leaves_the_sent_ones_fun() {
-    use crate::backend::logic::db::bin::vault_bin_prune_fun::{
-        VAULT_PRUNE_FILTERS, vault_prune_queue_plan_fun,
+async fn db_admin_prune_never_sent_leaves_the_sent_ones_fun() {
+    use crate::backend::logic::db::bin::db_admin_prune_fun::{
+        DB_ADMIN_PRUNE_FILTERS, db_admin_prune_queue_plan_fun,
     };
 
     let db = TEMP_DB::new_fun("prune-never-sent");
     let pool = db.pool_fun().await;
-    let now = crate::backend::logic::db::bin::vault_bin_now_fun::now_ms_fun();
+    let now = crate::backend::logic::db::bin::db_admin_now_fun::now_ms_fun();
 
     seed_queue_fun(&pool, "never", "tx-never", "alice.near", now, None).await;
     seed_queue_fun(&pool, "sent", "tx-sent", "bob.near", now, Some("HASH")).await;
 
-    let filters = VAULT_PRUNE_FILTERS {
+    let filters = DB_ADMIN_PRUNE_FILTERS {
         never_sent: true,
-        ..VAULT_PRUNE_FILTERS::default()
+        ..DB_ADMIN_PRUNE_FILTERS::default()
     };
 
-    let plan = vault_prune_queue_plan_fun(&pool, &filters)
+    let plan = db_admin_prune_queue_plan_fun(&pool, &filters)
         .await
         .expect("the plan should read");
     assert_eq!(plan, vec![String::from("never")]);
@@ -439,24 +437,24 @@ async fn vault_prune_never_sent_leaves_the_sent_ones_fun() {
 
 // the account filter takes the queues that account is on.
 #[tokio::test]
-async fn vault_prune_takes_the_accounts_queues_fun() {
-    use crate::backend::logic::db::bin::vault_bin_prune_fun::{
-        VAULT_PRUNE_FILTERS, vault_prune_queue_plan_fun,
+async fn db_admin_prune_takes_the_accounts_queues_fun() {
+    use crate::backend::logic::db::bin::db_admin_prune_fun::{
+        DB_ADMIN_PRUNE_FILTERS, db_admin_prune_queue_plan_fun,
     };
 
     let db = TEMP_DB::new_fun("prune-account");
     let pool = db.pool_fun().await;
-    let now = crate::backend::logic::db::bin::vault_bin_now_fun::now_ms_fun();
+    let now = crate::backend::logic::db::bin::db_admin_now_fun::now_ms_fun();
 
     seed_queue_fun(&pool, "alice-one", "tx-a1", "alice.near", now, None).await;
     seed_queue_fun(&pool, "bob-one", "tx-b1", "bob.near", now, None).await;
 
-    let filters = VAULT_PRUNE_FILTERS {
+    let filters = DB_ADMIN_PRUNE_FILTERS {
         account_id: Some(String::from("alice.near")),
-        ..VAULT_PRUNE_FILTERS::default()
+        ..DB_ADMIN_PRUNE_FILTERS::default()
     };
 
-    let plan = vault_prune_queue_plan_fun(&pool, &filters)
+    let plan = db_admin_prune_queue_plan_fun(&pool, &filters)
         .await
         .expect("the plan should read");
     assert_eq!(plan, vec![String::from("alice-one")]);
@@ -466,19 +464,19 @@ async fn vault_prune_takes_the_accounts_queues_fun() {
 // --- THE EXPORT AND THE IMPORT --------
 // the export comes back into a vault as the same rows.
 #[tokio::test]
-async fn vault_export_and_import_round_trip_fun() {
-    use crate::backend::logic::db::bin::vault_bin_export_fun::{
-        vault_bin_export_fun, vault_bin_import_fun,
+async fn db_admin_export_and_import_round_trip_fun() {
+    use crate::backend::logic::db::bin::db_admin_export_fun::{
+        db_admin_export_fun, db_admin_import_fun,
     };
 
     let db = TEMP_DB::new_fun("export");
     let pool = db.pool_fun().await;
-    let now = crate::backend::logic::db::bin::vault_bin_now_fun::now_ms_fun();
+    let now = crate::backend::logic::db::bin::db_admin_now_fun::now_ms_fun();
 
     seed_queue_fun(&pool, "one", "tx-one", "alice.near", now, None).await;
     seed_queue_fun(&pool, "two", "tx-two", "bob.near", now, Some("HASH")).await;
 
-    let export = vault_bin_export_fun(&pool, false)
+    let export = db_admin_export_fun(&pool, false)
         .await
         .expect("the export should read");
 
@@ -487,7 +485,7 @@ async fn vault_export_and_import_round_trip_fun() {
     let other_pool = other.pool_fun().await;
 
     let (queues, transactions, accounts, swaps, swap_accounts) =
-        vault_bin_import_fun(&other_pool, &export)
+        db_admin_import_fun(&other_pool, &export)
             .await
             .expect("the import should run");
     assert_eq!(queues, 2);
@@ -510,8 +508,8 @@ async fn vault_export_and_import_round_trip_fun() {
 
 // the api keys are left out of the export unless they are asked for.
 #[tokio::test]
-async fn vault_export_leaves_the_api_keys_out_fun() {
-    use crate::backend::logic::db::bin::vault_bin_export_fun::vault_bin_export_fun;
+async fn db_admin_export_leaves_the_api_keys_out_fun() {
+    use crate::backend::logic::db::bin::db_admin_export_fun::db_admin_export_fun;
 
     let db = TEMP_DB::new_fun("export-keys");
     let pool = db.pool_fun().await;
@@ -524,12 +522,12 @@ async fn vault_export_leaves_the_api_keys_out_fun() {
     .await
     .expect("the key should go in");
 
-    let export = vault_bin_export_fun(&pool, false)
+    let export = db_admin_export_fun(&pool, false)
         .await
         .expect("the export should read");
     assert!(export.get("api_keys").is_none());
 
-    let export = vault_bin_export_fun(&pool, true)
+    let export = db_admin_export_fun(&pool, true)
         .await
         .expect("the export should read");
     assert_eq!(
@@ -543,9 +541,9 @@ async fn vault_export_leaves_the_api_keys_out_fun() {
 
 // the import never brings an api key back.
 #[tokio::test]
-async fn vault_import_does_not_bring_the_api_keys_back_fun() {
-    use crate::backend::logic::db::bin::vault_bin_export_fun::{
-        vault_bin_export_fun, vault_bin_import_fun,
+async fn db_admin_import_does_not_bring_the_api_keys_back_fun() {
+    use crate::backend::logic::db::bin::db_admin_export_fun::{
+        db_admin_export_fun, db_admin_import_fun,
     };
 
     let db = TEMP_DB::new_fun("export-with-keys");
@@ -559,13 +557,13 @@ async fn vault_import_does_not_bring_the_api_keys_back_fun() {
     .await
     .expect("the key should go in");
 
-    let export = vault_bin_export_fun(&pool, true)
+    let export = db_admin_export_fun(&pool, true)
         .await
         .expect("the export should read");
 
     let other = TEMP_DB::new_fun("import-keys");
     let other_pool = other.pool_fun().await;
-    vault_bin_import_fun(&other_pool, &export)
+    db_admin_import_fun(&other_pool, &export)
         .await
         .expect("the import should run");
 
@@ -580,28 +578,27 @@ async fn vault_import_does_not_bring_the_api_keys_back_fun() {
 // --- THE BACKUP ------------------------
 // the backup is a whole db that opens on its own.
 #[tokio::test]
-async fn vault_backup_makes_a_db_that_opens_fun() {
-    use crate::backend::logic::db::bin::vault_bin_backup_fun::vault_bin_backup_fun;
-    use crate::backend::logic::db::bin::vault_bin_db_fun::vault_bin_db_has_tables_fun;
+async fn db_admin_backup_makes_a_db_that_opens_fun() {
+    use crate::backend::logic::db::bin::db_admin_backup_fun::db_admin_backup_fun;
+    use crate::backend::logic::db::bin::db_admin_db_fun::db_admin_db_has_tables_fun;
 
     let db = TEMP_DB::new_fun("backup");
     let pool = db.pool_fun().await;
-    let now = crate::backend::logic::db::bin::vault_bin_now_fun::now_ms_fun();
+    let now = crate::backend::logic::db::bin::db_admin_now_fun::now_ms_fun();
 
     seed_queue_fun(&pool, "one", "tx-one", "alice.near", now, None).await;
 
-    let destination = vault_bin_backup_fun(&pool, &db.path)
+    let destination = db_admin_backup_fun(&pool, &db.path)
         .await
         .expect("the backup should be taken");
     assert!(destination.exists(), "the backup file should be there");
 
     // the copy opens on its own and holds the same rows.
-    let copy =
-        crate::backend::logic::db::bin::vault_bin_db_fun::vault_bin_db_open_fun(&destination)
-            .await
-            .expect("the copy should open");
+    let copy = crate::backend::logic::db::bin::db_admin_db_fun::db_admin_db_open_fun(&destination)
+        .await
+        .expect("the copy should open");
     assert!(
-        vault_bin_db_has_tables_fun(&copy)
+        db_admin_db_has_tables_fun(&copy)
             .await
             .expect("the tables should read"),
         "the copy should have the tables"
@@ -615,11 +612,11 @@ async fn vault_backup_makes_a_db_that_opens_fun() {
 // --- THE DB OPEN -----------------------
 // a bin does not make a db where there is none.
 #[tokio::test]
-async fn vault_bin_db_open_does_not_make_a_db_fun() {
-    use crate::backend::logic::db::bin::vault_bin_db_fun::vault_bin_db_open_fun;
+async fn db_admin_db_open_does_not_make_a_db_fun() {
+    use crate::backend::logic::db::bin::db_admin_db_fun::db_admin_db_open_fun;
 
     let db = TEMP_DB::new_fun("no-db");
-    let result = vault_bin_db_open_fun(&db.path).await;
+    let result = db_admin_db_open_fun(&db.path).await;
     assert!(result.is_err(), "a missing db should be an error");
 }
 // ========================================

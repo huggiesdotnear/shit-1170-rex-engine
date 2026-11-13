@@ -1,5 +1,5 @@
 // ========================================
-// VAULT_BIN_BACKUP_FUN
+// DB_ADMIN_BACKUP_FUN
 // a copy of the db file that is safe to take while the app is running.
 //
 // --- WHY --- `VACUUM INTO` AND NOT A FILE COPY: a sqlite file in WAL
@@ -32,11 +32,11 @@ use std::path::{Path, PathBuf};
 //
 // --- WHY --- THE ORIGINAL IS NOT TOUCHED: the backup is a read of the
 // vault and a write of a new file. the vault is the thing that matters.
-pub async fn vault_bin_backup_fun(
+pub async fn db_admin_backup_fun(
     pool: &SqlitePool,
     db_path: &Path,
 ) -> Result<PathBuf, sqlx::Error> {
-    let now = crate::backend::logic::db::bin::vault_bin_now_fun::now_ms_fun();
+    let now = crate::backend::logic::db::bin::db_admin_now_fun::now_ms_fun();
 
     let stem = db_path
         .file_stem()

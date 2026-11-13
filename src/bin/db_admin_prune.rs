@@ -1,9 +1,9 @@
 // ========================================
-// VAULT_PRUNE
+// DB_ADMIN_PRUNE
 // the bin that takes old queues and swaps off a vault.
 //
 // usage:
-//   vault-prune --db <path> [filters] [--confirm]
+//   db-admin-prune --db <path> [filters] [--confirm]
 //
 // the filters:
 //   --older-than <days>   only the rows queued more than <days> ago
@@ -26,24 +26,24 @@
 // --- WHY --- `--confirm` IS A SWITCH AND NOT A VALUE: a value would
 // let `--confirm no` be read as "yes", and there is nothing to be
 // careful with here.
-use shit_1170_rex_engine::backend::logic::db::bin::vault_bin_args_fun::{
-    VAULT_BIN_ARGS, vault_bin_args_fun, vault_bin_flag_fun, vault_bin_id_list_fun,
-    vault_bin_switch_fun,
+use shit_1170_rex_engine::backend::logic::db::bin::db_admin_args_fun::{
+    DB_ADMIN_ARGS, db_admin_args_fun, db_admin_flag_fun, db_admin_id_list_fun, db_admin_switch_fun,
 };
-use shit_1170_rex_engine::backend::logic::db::bin::vault_bin_db_fun::{
-    vault_bin_db_has_tables_fun, vault_bin_db_open_fun, vault_bin_db_path_fun,
+use shit_1170_rex_engine::backend::logic::db::bin::db_admin_db_fun::{
+    db_admin_db_has_tables_fun, db_admin_db_open_fun, db_admin_db_path_fun,
 };
-use shit_1170_rex_engine::backend::logic::db::bin::vault_bin_prune_fun::{
-    VAULT_PRUNE_FILTERS, vault_prune_count_children_fun, vault_prune_count_swap_accounts_fun,
-    vault_prune_delete_fun, vault_prune_queue_plan_fun, vault_prune_swap_plan_fun,
+use shit_1170_rex_engine::backend::logic::db::bin::db_admin_prune_fun::{
+    DB_ADMIN_PRUNE_FILTERS, db_admin_prune_count_children_fun,
+    db_admin_prune_count_swap_accounts_fun, db_admin_prune_delete_fun,
+    db_admin_prune_queue_plan_fun, db_admin_prune_swap_plan_fun,
 };
 // ========================================
 #[tokio::main]
 async fn main() {
     let words: Vec<String> = std::env::args().skip(1).collect();
-    let args = vault_bin_args_fun(&words);
+    let args = db_admin_args_fun(&words);
 
-    if vault_bin_switch_fun(&args, "help") {
+    if db_admin_switch_fun(&args, "help") {
         print_help_fun();
         return;
     }
@@ -82,12 +82,12 @@ async fn main() {
                 .cloned()
                 .unwrap_or_else(|| unknown_switches.first().cloned().unwrap_or_default())
         );
-        eprintln!("run `vault-prune --help` to see the flags");
+        eprintln!("run `db-admin-prune --help` to see the flags");
         std::process::exit(2);
     }
 
     // --- THE FILTERS --------------------
-    let filters = match vault_bin_filters_fun(&args) {
+    let filters = match db_admin_filters_fun(&args) {
         Ok(filters) => filters,
         Err(message) => {
             eprintln!("{message}");
@@ -111,15 +111,15 @@ async fn main() {
     }
 
     // --- THE DB -------------------------
-    let db_path = vault_bin_db_path_fun(args.db_path.clone());
-    let pool = match vault_bin_db_open_fun(&db_path).await {
+    let db_path = db_admin_db_path_fun(args.db_path.clone());
+    let pool = match db_admin_db_open_fun(&db_path).await {
         Ok(pool) => pool,
         Err(err) => {
             eprintln!("could not open the db at {}: {err}", db_path.display());
             std::process::exit(1);
         }
     };
-    match vault_bin_db_has_tables_fun(&pool).await {
+    match db_admin_db_has_tables_fun(&pool).await {
         Ok(true) => {}
         Ok(false) => {
             eprintln!("the db at {} is not a shit-1170 vault.", db_path.display());
@@ -132,14 +132,14 @@ async fn main() {
     }
 
     // --- THE PLAN -----------------------
-    let queue_ids = match vault_prune_queue_plan_fun(&pool, &filters).await {
+    let queue_ids = match db_admin_prune_queue_plan_fun(&pool, &filters).await {
         Ok(ids) => ids,
         Err(err) => {
             eprintln!("could not read the queues: {err}");
             std::process::exit(1);
         }
     };
-    let swap_ids = match vault_prune_swap_plan_fun(&pool, &filters).await {
+    let swap_ids = match db_admin_prune_swap_plan_fun(&pool, &filters).await {
         Ok(ids) => ids,
         Err(err) => {
             eprintln!("could not read the swaps: {err}");
@@ -148,14 +148,14 @@ async fn main() {
     };
 
     let (transaction_rows, account_rows) =
-        match vault_prune_count_children_fun(&pool, &queue_ids).await {
+        match db_admin_prune_count_children_fun(&pool, &queue_ids).await {
             Ok(counts) => counts,
             Err(err) => {
                 eprintln!("could not count the queue rows: {err}");
                 std::process::exit(1);
             }
         };
-    let swap_account_rows = match vault_prune_count_swap_accounts_fun(&pool, &swap_ids).await {
+    let swap_account_rows = match db_admin_prune_count_swap_accounts_fun(&pool, &swap_ids).await {
         Ok(count) => count,
         Err(err) => {
             eprintln!("could not count the swap rows: {err}");
@@ -188,7 +188,7 @@ async fn main() {
     }
 
     // --- THE DRY RUN -------------------
-    if !vault_bin_switch_fun(&args, "confirm") {
+    if !db_admin_switch_fun(&args, "confirm") {
         println!();
         println!("this was a dry run. nothing was deleted.");
         println!("add --confirm to actually delete these rows.");
@@ -197,14 +197,14 @@ async fn main() {
 
     // --- THE DELETE --------------------
     let plan =
-        shit_1170_rex_engine::backend::logic::db::bin::vault_bin_prune_fun::VAULT_PRUNE_PLAN {
+        shit_1170_rex_engine::backend::logic::db::bin::db_admin_prune_fun::DB_ADMIN_PRUNE_PLAN {
             queue_ids,
             swap_ids,
             transaction_rows,
             account_rows,
             swap_account_rows,
         };
-    match vault_prune_delete_fun(&pool, &plan).await {
+    match db_admin_prune_delete_fun(&pool, &plan).await {
         Ok((queues, swaps)) => {
             println!();
             println!("deleted {} queues and {} swaps.", queues, swaps);
@@ -222,30 +222,30 @@ async fn main() {
 // --- WHY --- A FLAG THAT IS NOT A NUMBER IS AN ERROR and not a zero: a
 // `--older-than abc` that meant "no age filter" would take everything
 // the other filters match, which is the opposite of what was asked.
-fn vault_bin_filters_fun(args: &VAULT_BIN_ARGS) -> Result<VAULT_PRUNE_FILTERS, String> {
-    let mut filters = VAULT_PRUNE_FILTERS {
-        never_sent: vault_bin_switch_fun(args, "never-sent"),
-        include_sent: vault_bin_switch_fun(args, "include-sent"),
-        include_swaps: vault_bin_switch_fun(args, "swaps"),
-        queue_ids: vault_bin_id_list_fun(args, "queue-ids"),
-        swap_ids: vault_bin_id_list_fun(args, "swap-ids"),
-        account_id: vault_bin_flag_fun(args, "account").map(|value| value.to_string()),
-        ..VAULT_PRUNE_FILTERS::default()
+fn db_admin_filters_fun(args: &DB_ADMIN_ARGS) -> Result<DB_ADMIN_PRUNE_FILTERS, String> {
+    let mut filters = DB_ADMIN_PRUNE_FILTERS {
+        never_sent: db_admin_switch_fun(args, "never-sent"),
+        include_sent: db_admin_switch_fun(args, "include-sent"),
+        include_swaps: db_admin_switch_fun(args, "swaps"),
+        queue_ids: db_admin_id_list_fun(args, "queue-ids"),
+        swap_ids: db_admin_id_list_fun(args, "swap-ids"),
+        account_id: db_admin_flag_fun(args, "account").map(|value| value.to_string()),
+        ..DB_ADMIN_PRUNE_FILTERS::default()
     };
 
-    if let Some(value) = vault_bin_flag_fun(args, "older-than") {
+    if let Some(value) = db_admin_flag_fun(args, "older-than") {
         let days: u32 = value
             .parse()
             .map_err(|_| format!("--older-than wants a number of days, not '{value}'"))?;
         filters.older_than_days = Some(days);
     }
-    if let Some(value) = vault_bin_flag_fun(args, "before") {
+    if let Some(value) = db_admin_flag_fun(args, "before") {
         let ms: i64 = value
             .parse()
             .map_err(|_| format!("--before wants epoch milliseconds, not '{value}'"))?;
         filters.before_ms = Some(ms);
     }
-    if let Some(value) = vault_bin_flag_fun(args, "after") {
+    if let Some(value) = db_admin_flag_fun(args, "after") {
         let ms: i64 = value
             .parse()
             .map_err(|_| format!("--after wants epoch milliseconds, not '{value}'"))?;
@@ -258,10 +258,10 @@ fn vault_bin_filters_fun(args: &VAULT_BIN_ARGS) -> Result<VAULT_PRUNE_FILTERS, S
 // the usage text.
 fn print_help_fun() {
     println!(
-        r#"vault-prune - take old queues and swaps off a vault
+        r#"db-admin-prune - take old queues and swaps off a vault
 
 usage:
-  vault-prune --db <path> [filters] [--confirm]
+  db-admin-prune --db <path> [filters] [--confirm]
 
 the filters:
   --older-than <days>   only the rows queued more than <days> ago

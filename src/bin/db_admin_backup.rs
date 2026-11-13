@@ -1,9 +1,9 @@
 // ========================================
-// VAULT_BACKUP
+// DB_ADMIN_BACKUP
 // the bin that takes a safe copy of a vault.
 //
 // usage:
-//   vault-backup --db <path> [--out <path>]
+//   db-admin-backup --db <path> [--out <path>]
 //
 // --- WHY --- IT IS `VACUUM INTO` AND NOT A FILE COPY: a sqlite file in
 // WAL mode is three files — the db, the `-wal` and the `-shm` — and a
@@ -14,21 +14,21 @@
 // --- WHY --- THE COPY GOES NEXT TO THE ORIGINAL by default: the copy is
 // of the vault, and the vault's folder is where the person who made it
 // will look for it.
-use shit_1170_rex_engine::backend::logic::db::bin::vault_bin_args_fun::{
-    vault_bin_args_fun, vault_bin_flag_fun, vault_bin_switch_fun,
+use shit_1170_rex_engine::backend::logic::db::bin::db_admin_args_fun::{
+    db_admin_args_fun, db_admin_flag_fun, db_admin_switch_fun,
 };
-use shit_1170_rex_engine::backend::logic::db::bin::vault_bin_backup_fun::vault_bin_backup_fun;
-use shit_1170_rex_engine::backend::logic::db::bin::vault_bin_db_fun::{
-    vault_bin_db_has_tables_fun, vault_bin_db_open_fun, vault_bin_db_path_fun,
+use shit_1170_rex_engine::backend::logic::db::bin::db_admin_backup_fun::db_admin_backup_fun;
+use shit_1170_rex_engine::backend::logic::db::bin::db_admin_db_fun::{
+    db_admin_db_has_tables_fun, db_admin_db_open_fun, db_admin_db_path_fun,
 };
 use std::path::PathBuf;
 // ========================================
 #[tokio::main]
 async fn main() {
     let words: Vec<String> = std::env::args().skip(1).collect();
-    let args = vault_bin_args_fun(&words);
+    let args = db_admin_args_fun(&words);
 
-    if vault_bin_switch_fun(&args, "help") {
+    if db_admin_switch_fun(&args, "help") {
         print_help_fun();
         return;
     }
@@ -54,20 +54,20 @@ async fn main() {
                 .cloned()
                 .unwrap_or_else(|| unknown_switches.first().cloned().unwrap_or_default())
         );
-        eprintln!("run `vault-backup --help` to see the flags");
+        eprintln!("run `db-admin-backup --help` to see the flags");
         std::process::exit(2);
     }
 
     // --- THE DB ------------------------
-    let db_path = vault_bin_db_path_fun(args.db_path.clone());
-    let pool = match vault_bin_db_open_fun(&db_path).await {
+    let db_path = db_admin_db_path_fun(args.db_path.clone());
+    let pool = match db_admin_db_open_fun(&db_path).await {
         Ok(pool) => pool,
         Err(err) => {
             eprintln!("could not open the db at {}: {err}", db_path.display());
             std::process::exit(1);
         }
     };
-    match vault_bin_db_has_tables_fun(&pool).await {
+    match db_admin_db_has_tables_fun(&pool).await {
         Ok(true) => {}
         Ok(false) => {
             eprintln!("the db at {} is not a shit-1170 vault.", db_path.display());
@@ -80,9 +80,9 @@ async fn main() {
     }
 
     // --- THE COPY ----------------------
-    let destination = match vault_bin_flag_fun(&args, "out") {
+    let destination = match db_admin_flag_fun(&args, "out") {
         Some(value) => PathBuf::from(value),
-        None => match vault_bin_backup_fun(&pool, &db_path).await {
+        None => match db_admin_backup_fun(&pool, &db_path).await {
             Ok(path) => path,
             Err(err) => {
                 eprintln!("could not make the backup: {err}");
@@ -96,7 +96,7 @@ async fn main() {
     // not by a file copy: the same reason the default copy is made that
     // way. a copy of the db file alone is a db with the recent writes
     // left out.
-    if vault_bin_flag_fun(&args, "out").is_some() {
+    if db_admin_flag_fun(&args, "out").is_some() {
         if destination.exists() {
             eprintln!("the file is already there: {}", destination.display());
             std::process::exit(1);
@@ -120,10 +120,10 @@ async fn main() {
 // the usage text.
 fn print_help_fun() {
     println!(
-        r#"vault-backup - take a safe copy of a vault
+        r#"db-admin-backup - take a safe copy of a vault
 
 usage:
-  vault-backup --db <path> [--out <path>]
+  db-admin-backup --db <path> [--out <path>]
 
   --db <path>    the db file to copy
   --out <path>   where the copy goes (default: next to the db)

@@ -1,9 +1,9 @@
 // ========================================
-// VAULT_EXPORT
+// DB_ADMIN_EXPORT
 // the bin that writes a vault out as json.
 //
 // usage:
-//   vault-export --db <path> [--out <file>] [--with-api-keys]
+//   db-admin-export --db <path> [--out <file>] [--with-api-keys]
 //
 // --- WHY --- THE API KEYS ARE NOT IN THE FILE UNLESS THEY ARE ASKED FOR:
 // the keys are credentials. a file of queues is a file you can hand
@@ -12,20 +12,20 @@
 // --- WHY --- IT PRINTS TO STDOUT WHEN THERE IS NO `--out`: a person can
 // pipe it into a file or into `jq`, and the shell is the tool for
 // moving data around.
-use shit_1170_rex_engine::backend::logic::db::bin::vault_bin_args_fun::{
-    vault_bin_args_fun, vault_bin_flag_fun, vault_bin_switch_fun,
+use shit_1170_rex_engine::backend::logic::db::bin::db_admin_args_fun::{
+    db_admin_args_fun, db_admin_flag_fun, db_admin_switch_fun,
 };
-use shit_1170_rex_engine::backend::logic::db::bin::vault_bin_db_fun::{
-    vault_bin_db_has_tables_fun, vault_bin_db_open_fun, vault_bin_db_path_fun,
+use shit_1170_rex_engine::backend::logic::db::bin::db_admin_db_fun::{
+    db_admin_db_has_tables_fun, db_admin_db_open_fun, db_admin_db_path_fun,
 };
-use shit_1170_rex_engine::backend::logic::db::bin::vault_bin_export_fun::vault_bin_export_fun;
+use shit_1170_rex_engine::backend::logic::db::bin::db_admin_export_fun::db_admin_export_fun;
 // ========================================
 #[tokio::main]
 async fn main() {
     let words: Vec<String> = std::env::args().skip(1).collect();
-    let args = vault_bin_args_fun(&words);
+    let args = db_admin_args_fun(&words);
 
-    if vault_bin_switch_fun(&args, "help") {
+    if db_admin_switch_fun(&args, "help") {
         print_help_fun();
         return;
     }
@@ -51,20 +51,20 @@ async fn main() {
                 .cloned()
                 .unwrap_or_else(|| unknown_switches.first().cloned().unwrap_or_default())
         );
-        eprintln!("run `vault-export --help` to see the flags");
+        eprintln!("run `db-admin-export --help` to see the flags");
         std::process::exit(2);
     }
 
     // --- THE DB ------------------------
-    let db_path = vault_bin_db_path_fun(args.db_path.clone());
-    let pool = match vault_bin_db_open_fun(&db_path).await {
+    let db_path = db_admin_db_path_fun(args.db_path.clone());
+    let pool = match db_admin_db_open_fun(&db_path).await {
         Ok(pool) => pool,
         Err(err) => {
             eprintln!("could not open the db at {}: {err}", db_path.display());
             std::process::exit(1);
         }
     };
-    match vault_bin_db_has_tables_fun(&pool).await {
+    match db_admin_db_has_tables_fun(&pool).await {
         Ok(true) => {}
         Ok(false) => {
             eprintln!("the db at {} is not a shit-1170 vault.", db_path.display());
@@ -77,8 +77,8 @@ async fn main() {
     }
 
     // --- THE EXPORT --------------------
-    let with_api_keys = vault_bin_switch_fun(&args, "with-api-keys");
-    let export = match vault_bin_export_fun(&pool, with_api_keys).await {
+    let with_api_keys = db_admin_switch_fun(&args, "with-api-keys");
+    let export = match db_admin_export_fun(&pool, with_api_keys).await {
         Ok(export) => export,
         Err(err) => {
             eprintln!("could not read the vault: {err}");
@@ -95,7 +95,7 @@ async fn main() {
     };
 
     // --- WHERE IT GOES -----------------
-    match vault_bin_flag_fun(&args, "out") {
+    match db_admin_flag_fun(&args, "out") {
         Some(path) => match std::fs::write(path, &text) {
             Ok(()) => {
                 println!("export written to {path}");
@@ -114,10 +114,10 @@ async fn main() {
 // the usage text.
 fn print_help_fun() {
     println!(
-        r#"vault-export - write a vault out as json
+        r#"db-admin-export - write a vault out as json
 
 usage:
-  vault-export --db <path> [--out <file>] [--with-api-keys]
+  db-admin-export --db <path> [--out <file>] [--with-api-keys]
 
   --db <path>          the db file to read
   --out <file>         where the json goes (default: stdout)

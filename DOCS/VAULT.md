@@ -176,8 +176,8 @@ vault is throwaway: delete it, and the next start makes a new one.
 **a local vault can be a COPY of the production one.** a copy is the
 right thing to test against when the thing being tested depends on the
 SHAPE of the data — a queue with three transactions, an account that
-has already sent, a swap whose quote is stale. `vault-export` writes
-the production vault out as json and `vault-import` brings it into a
+has already sent, a swap whose quote is stale. `db-admin-export` writes
+the production vault out as json and `db-admin-import` brings it into a
 local db. the api keys are deliberately left out of that round trip:
 the accounts come back and the user signs in again.
 
@@ -187,19 +187,19 @@ folder, and the bins do not care which because they are told:
 
 ```sh
 # the local one
-./target/debug/vault_list --db /tmp/shit-1170-test/vault.db
+./target/debug/db_admin_list --db /tmp/shit-1170-test/vault.db
 
 # the production one, inside the container
 docker compose -f DOCKER/docker-compose.yml exec \
   shit-1170-rex-engine-backend \
-  vault-prune --db /home/shit-1170/.shit-1170-rex-engine/shit-1170-rex-engine.db --older-than 30
+  db-admin-prune --db /home/shit-1170/.shit-1170-rex-engine/shit-1170-rex-engine.db --older-than 30
 ```
 
 **always take a backup before a prune on the production vault.** the
 backup is safe to take while the app is running, because it is taken
 with sqlite's own backup and not with a file copy.
 
-## THE VAULT BINS
+## THE DB ADMIN BINS
 
 the bins are the DEFAULT way to do db work on a vault. the app has no
 migration system and no admin routes that wipe the queue, so anything
@@ -210,13 +210,13 @@ the bins exist, and the app never has to handle migration logic.
 the bins live in `src/bin/` and their logic lives in
 `src/backend/logic/db/bin/`.
 
-| bin            | what it does                                                                       |
-| -------------- | ---------------------------------------------------------------------------------- |
-| `vault-list`   | shows what is in a vault: the queues, the swaps and the row counts. it only reads. |
-| `vault-prune`  | takes old queued batches and swaps off a vault, by age, by never-sent, or by id.   |
-| `vault-backup` | takes a safe copy of a vault, with sqlite's own backup.                            |
-| `vault-export` | writes a vault out as json.                                                        |
-| `vault-import` | brings an export back into a vault.                                                |
+| bin               | what it does                                                                       |
+| ----------------- | ---------------------------------------------------------------------------------- |
+| `db-admin-list`   | shows what is in a vault: the queues, the swaps and the row counts. it only reads. |
+| `db-admin-prune`  | takes old queued batches and swaps off a vault, by age, by never-sent, or by id.   |
+| `db-admin-backup` | takes a safe copy of a vault, with sqlite's own backup.                            |
+| `db-admin-export` | writes a vault out as json.                                                        |
+| `db-admin-import` | brings an export back into a vault.                                                |
 
 every bin takes `--db <path>`. the flag wins over
 `SHIT_1170_VAULT_DB_LOCATION`, and that wins over the default path —
@@ -226,7 +226,7 @@ file it was told to.
 
 ### THE BINS ARE SAFE BY DEFAULT
 
-**`vault-prune` and `vault-import` are a DRY RUN until `--confirm` is
+**`db-admin-prune` and `db-admin-import` are a DRY RUN until `--confirm` is
 given.** they print the plan — which rows, how many, which tables' rows
 go with them — and then stop. there is no undo, so the plan is the
 whole point.
@@ -241,8 +241,8 @@ there says so and stops. it does not make an empty db where the real
 one should have been, and it does not run the schema creates against a
 vault it was asked to look at.
 
-**the api keys do not travel.** `vault-export` leaves them out unless
-`--with-api-keys` is given, and `vault-import` never brings them back
+**the api keys do not travel.** `db-admin-export` leaves them out unless
+`--with-api-keys` is given, and `db-admin-import` never brings them back
 in — a key that has been in a file has been in the clear, so the
 accounts come back and the user signs in again.
 

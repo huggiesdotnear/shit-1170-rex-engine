@@ -1,5 +1,5 @@
 // ========================================
-// VAULT_BIN_LIST_FUN
+// DB_ADMIN_LIST_FUN
 // what is in a vault: the queues, the swaps and the api keys, with the
 // counts that say how big each one is.
 //
@@ -18,7 +18,7 @@ use sqlx::{Row, SqlitePool};
 // --- TYPES ------------------------------
 // one queue as the list shows it.
 #[derive(Debug, Clone)]
-pub struct VAULT_LIST_QUEUE {
+pub struct DB_ADMIN_LIST_QUEUE {
     // the batch's id.
     pub queue_id: String,
     // what the transactions do, in words.
@@ -35,7 +35,7 @@ pub struct VAULT_LIST_QUEUE {
 
 // one swap as the list shows it.
 #[derive(Debug, Clone)]
-pub struct VAULT_LIST_SWAP {
+pub struct DB_ADMIN_LIST_SWAP {
     // the swap's id.
     pub swap_id: String,
     // what the swap does, in words.
@@ -60,10 +60,10 @@ pub struct VAULT_LIST_SWAP {
 // --- WHY --- THE COUNTED ROWS ARE THE ACCOUNT ROWS of the queue: the
 // account row is the one place the status lives, so "how many sent it"
 // is a count over the rows that carry a hash.
-pub async fn vault_bin_list_queues_fun(
+pub async fn db_admin_list_queues_fun(
     pool: &SqlitePool,
     limit: Option<i64>,
-) -> Result<Vec<VAULT_LIST_QUEUE>, sqlx::Error> {
+) -> Result<Vec<DB_ADMIN_LIST_QUEUE>, sqlx::Error> {
     let mut query = String::from(
         "SELECT q.queue_id, q.what, q.created_at,
                 (SELECT COUNT(*) FROM tx_queue_transactions t
@@ -88,7 +88,7 @@ pub async fn vault_bin_list_queues_fun(
 
     Ok(rows
         .iter()
-        .map(|row| VAULT_LIST_QUEUE {
+        .map(|row| DB_ADMIN_LIST_QUEUE {
             queue_id: row.get("queue_id"),
             what: row.get("what"),
             created_at: row.get("created_at"),
@@ -102,10 +102,10 @@ pub async fn vault_bin_list_queues_fun(
 // ========================================
 // --- LIST THE SWAPS --------------------
 // every swap with its counts.
-pub async fn vault_bin_list_swaps_fun(
+pub async fn db_admin_list_swaps_fun(
     pool: &SqlitePool,
     limit: Option<i64>,
-) -> Result<Vec<VAULT_LIST_SWAP>, sqlx::Error> {
+) -> Result<Vec<DB_ADMIN_LIST_SWAP>, sqlx::Error> {
     let mut query = String::from(
         "SELECT s.swap_id, s.what, s.created_at,
                 (SELECT COUNT(*) FROM swap_queue_accounts a
@@ -128,7 +128,7 @@ pub async fn vault_bin_list_swaps_fun(
 
     Ok(rows
         .iter()
-        .map(|row| VAULT_LIST_SWAP {
+        .map(|row| DB_ADMIN_LIST_SWAP {
             swap_id: row.get("swap_id"),
             what: row.get("what"),
             created_at: row.get("created_at"),
@@ -145,10 +145,10 @@ pub async fn vault_bin_list_swaps_fun(
 // --- WHY --- THE COUNTS ARE READ AT ONCE and not one at a time: the
 // numbers are the summary of the vault, and a summary that takes six
 // round trips is not a summary.
-pub async fn vault_bin_list_counts_fun(
+pub async fn db_admin_list_counts_fun(
     pool: &SqlitePool,
 ) -> Result<Vec<(String, u64)>, sqlx::Error> {
-    let tables = crate::backend::logic::db::bin::vault_bin_db_fun::VAULT_BIN_TABLES;
+    let tables = crate::backend::logic::db::bin::db_admin_db_fun::DB_ADMIN_TABLES;
     let mut counts = Vec::new();
 
     for table in tables {
@@ -169,7 +169,7 @@ pub async fn vault_bin_list_counts_fun(
 // --- WHY --- THE TIME IS PRINTED AS A UTC STRING and not as a number:
 // the list is read by a person, and a number of milliseconds since the
 // epoch is not a time. the number is still there in the export.
-pub fn vault_bin_when_fun(ms: i64) -> String {
+pub fn db_admin_when_fun(ms: i64) -> String {
     if ms < 0 {
         return String::from("unknown");
     }

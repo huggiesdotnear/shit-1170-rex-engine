@@ -1,5 +1,5 @@
 // ========================================
-// VAULT_BIN_PRUNE_FUN
+// DB_ADMIN_PRUNE_FUN
 // what to delete from a vault: the filters, the plan, and the delete.
 //
 // --- WHY --- the plan and the delete are TWO STEPS: the first says what
@@ -31,7 +31,7 @@ use sqlx::{Row, SqlitePool};
 // --- TYPES ------------------------------
 // the filters that say what to delete.
 #[derive(Debug, Clone, Default)]
-pub struct VAULT_PRUNE_FILTERS {
+pub struct DB_ADMIN_PRUNE_FILTERS {
     // only the queues and swaps older than this many days.
     pub older_than_days: Option<u32>,
     // only the queues and swaps created before this moment, in epoch ms.
@@ -60,7 +60,7 @@ pub struct VAULT_PRUNE_FILTERS {
 // --- PLAN ------------------------------
 // what would be deleted.
 #[derive(Debug, Clone, Default)]
-pub struct VAULT_PRUNE_PLAN {
+pub struct DB_ADMIN_PRUNE_PLAN {
     // the queue ids that would go.
     pub queue_ids: Vec<String>,
     // the swap ids that would go.
@@ -108,11 +108,14 @@ pub enum SqlxBind {
 // --- WHY --- the account filter is an `EXISTS` over the account rows of
 // the queue: the account may be on ONE transaction of the batch and not
 // on the others, and "the queues this account is on" is the question.
-fn vault_prune_queue_where_fun(filters: &VAULT_PRUNE_FILTERS, binds: &mut Vec<SqlxBind>) -> String {
+fn db_admin_prune_queue_where_fun(
+    filters: &DB_ADMIN_PRUNE_FILTERS,
+    binds: &mut Vec<SqlxBind>,
+) -> String {
     let mut clauses: Vec<String> = Vec::new();
 
     if let Some(days) = filters.older_than_days {
-        let cutoff = crate::backend::logic::db::bin::vault_bin_now_fun::now_ms_fun()
+        let cutoff = crate::backend::logic::db::bin::db_admin_now_fun::now_ms_fun()
             - (days as i64) * 24 * 60 * 60 * 1000;
         clauses.push(format!("created_at < ?{}", binds.len() + 1));
         binds.push(SqlxBind::Int(cutoff));
@@ -179,11 +182,14 @@ fn vault_prune_queue_where_fun(filters: &VAULT_PRUNE_FILTERS, binds: &mut Vec<Sq
 // --- WHY --- THE SWAPS HAVE THEIR OWN WHERE BUILDER and not a shared
 // one: the swap table has no `tx_queue_accounts` under it, so the
 // never-sent and the account filters read a different table for them.
-fn vault_prune_swap_where_fun(filters: &VAULT_PRUNE_FILTERS, binds: &mut Vec<SqlxBind>) -> String {
+fn db_admin_prune_swap_where_fun(
+    filters: &DB_ADMIN_PRUNE_FILTERS,
+    binds: &mut Vec<SqlxBind>,
+) -> String {
     let mut clauses: Vec<String> = Vec::new();
 
     if let Some(days) = filters.older_than_days {
-        let cutoff = crate::backend::logic::db::bin::vault_bin_now_fun::now_ms_fun()
+        let cutoff = crate::backend::logic::db::bin::db_admin_now_fun::now_ms_fun()
             - (days as i64) * 24 * 60 * 60 * 1000;
         clauses.push(format!("created_at < ?{}", binds.len() + 1));
         binds.push(SqlxBind::Int(cutoff));
@@ -246,7 +252,7 @@ fn vault_prune_swap_where_fun(filters: &VAULT_PRUNE_FILTERS, binds: &mut Vec<Sql
 // query text: a query that happens to contain the word "swap_id" in it
 // would make the reader pick the wrong column, and the check would be
 // reading the sql to work out what the sql means.
-async fn vault_prune_run_id_query_fun(
+async fn db_admin_prune_run_id_query_fun(
     pool: &SqlitePool,
     query: &str,
     column: &str,
@@ -276,9 +282,9 @@ async fn vault_prune_run_id_query_fun(
 //
 // --- WHY --- A QUEUE ID ON ITS OWN IS ENOUGH: naming a queue id says
 // "this queue", and it does not need anything else on top of it.
-pub async fn vault_prune_queue_plan_fun(
+pub async fn db_admin_prune_queue_plan_fun(
     pool: &SqlitePool,
-    filters: &VAULT_PRUNE_FILTERS,
+    filters: &DB_ADMIN_PRUNE_FILTERS,
 ) -> Result<Vec<String>, sqlx::Error> {
     let asks_for_queues = filters.older_than_days.is_some()
         || filters.before_ms.is_some()
@@ -292,13 +298,13 @@ pub async fn vault_prune_queue_plan_fun(
     }
 
     let mut binds: Vec<SqlxBind> = Vec::new();
-    let where_clause = vault_prune_queue_where_fun(filters, &mut binds);
+    let where_clause = db_admin_prune_queue_where_fun(filters, &mut binds);
 
     let mut query = String::from("SELECT queue_id FROM tx_queue");
     query.push_str(&where_clause);
     query.push_str(" ORDER BY created_at ASC, queue_id ASC");
 
-    vault_prune_run_id_query_fun(pool, &query, "queue_id", &binds).await
+    db_admin_prune_run_id_query_fun(pool, &query, "queue_id", &binds).await
 }
 
 // ========================================
@@ -312,22 +318,22 @@ pub async fn vault_prune_queue_plan_fun(
 //
 // --- WHY --- A SWAP ID ON ITS OWN IS ENOUGH: naming a swap id says
 // "this swap", and it does not need `--swaps` on top of it.
-pub async fn vault_prune_swap_plan_fun(
+pub async fn db_admin_prune_swap_plan_fun(
     pool: &SqlitePool,
-    filters: &VAULT_PRUNE_FILTERS,
+    filters: &DB_ADMIN_PRUNE_FILTERS,
 ) -> Result<Vec<String>, sqlx::Error> {
     if !filters.include_swaps && filters.swap_ids.is_empty() {
         return Ok(Vec::new());
     }
 
     let mut binds: Vec<SqlxBind> = Vec::new();
-    let where_clause = vault_prune_swap_where_fun(filters, &mut binds);
+    let where_clause = db_admin_prune_swap_where_fun(filters, &mut binds);
 
     let mut query = String::from("SELECT swap_id FROM swap_queue");
     query.push_str(&where_clause);
     query.push_str(" ORDER BY created_at ASC, swap_id ASC");
 
-    vault_prune_run_id_query_fun(pool, &query, "swap_id", &binds).await
+    db_admin_prune_run_id_query_fun(pool, &query, "swap_id", &binds).await
 }
 
 // ========================================
@@ -337,7 +343,7 @@ pub async fn vault_prune_swap_plan_fun(
 // --- WHY --- THE COUNT IS TAKEN BEFORE THE DELETE: the numbers are
 // what the plan prints, and after the delete there is nothing left to
 // count.
-pub async fn vault_prune_count_children_fun(
+pub async fn db_admin_prune_count_children_fun(
     pool: &SqlitePool,
     queue_ids: &[String],
 ) -> Result<(u64, u64), sqlx::Error> {
@@ -372,7 +378,7 @@ pub async fn vault_prune_count_children_fun(
 // ========================================
 // --- COUNT THE SWAP ACCOUNTS -----------
 // how many swap account rows go with the swaps.
-pub async fn vault_prune_count_swap_accounts_fun(
+pub async fn db_admin_prune_count_swap_accounts_fun(
     pool: &SqlitePool,
     swap_ids: &[String],
 ) -> Result<u64, sqlx::Error> {
@@ -405,9 +411,9 @@ pub async fn vault_prune_count_swap_accounts_fun(
 // --- WHY --- THE SWAPS GO FIRST: their account rows point at them, and
 // the cascade takes them. the tx queues go after, and their
 // transactions and account rows go with them.
-pub async fn vault_prune_delete_fun(
+pub async fn db_admin_prune_delete_fun(
     pool: &SqlitePool,
-    plan: &VAULT_PRUNE_PLAN,
+    plan: &DB_ADMIN_PRUNE_PLAN,
 ) -> Result<(u64, u64), sqlx::Error> {
     let mut transaction = pool.begin().await?;
 

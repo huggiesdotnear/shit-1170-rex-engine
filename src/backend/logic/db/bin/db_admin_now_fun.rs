@@ -1,5 +1,5 @@
 // ========================================
-// VAULT_BIN_NOW_FUN
+// DB_ADMIN_NOW_FUN
 // the current time, in ms since the epoch.
 //
 // --- WHY --- IT IS HERE AND NOT TAKEN FROM THE APP'S STORE: the app's
