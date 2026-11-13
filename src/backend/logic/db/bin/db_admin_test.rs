@@ -620,5 +620,115 @@ async fn db_admin_db_open_does_not_make_a_db_fun() {
     assert!(result.is_err(), "a missing db should be an error");
 }
 // ========================================
+// --- THE OPPOSITE FLAGS ---------------
+// `--never-sent` and `--include-sent` ask opposite questions, and the
+// bin refuses the pair instead of picking one.
+//
+// --- WHY --- THE RULE IS IN THE LOGIC and not in the bin: the rule is
+// the answer to "can these filters be used together", and that is a
+// question about the filters and not about the command line. the bin
+// asks it and refuses the pair; the test asks the same thing.
+#[test]
+fn db_admin_never_sent_and_include_sent_are_opposite_fun() {
+    use crate::backend::logic::db::bin::db_admin_prune_fun::{
+        DB_ADMIN_PRUNE_FILTERS, db_admin_prune_filters_are_opposite_fun,
+    };
+
+    let never_sent = DB_ADMIN_PRUNE_FILTERS {
+        never_sent: true,
+        include_sent: false,
+        ..DB_ADMIN_PRUNE_FILTERS::default()
+    };
+    let include_sent = DB_ADMIN_PRUNE_FILTERS {
+        never_sent: false,
+        include_sent: true,
+        ..DB_ADMIN_PRUNE_FILTERS::default()
+    };
+    let both = DB_ADMIN_PRUNE_FILTERS {
+        never_sent: true,
+        include_sent: true,
+        ..DB_ADMIN_PRUNE_FILTERS::default()
+    };
+
+    assert!(
+        !db_admin_prune_filters_are_opposite_fun(&never_sent),
+        "--never-sent on its own is fine"
+    );
+    assert!(
+        !db_admin_prune_filters_are_opposite_fun(&include_sent),
+        "--include-sent on its own is fine"
+    );
+    assert!(
+        db_admin_prune_filters_are_opposite_fun(&both),
+        "--never-sent with --include-sent is the pair that asks opposite questions"
+    );
+}
+// ========================================
+// --- THE VERSION -----------------------
+// the import reads the version of the file and refuses one it cannot read.
+#[test]
+fn db_admin_export_version_is_checked_fun() {
+    use crate::backend::logic::db::bin::db_admin_export_fun::{
+        DB_ADMIN_EXPORT_VERSION, db_admin_export_version_ok_fun,
+    };
+
+    // the current version is fine.
+    let current = serde_json::json!({ "version": DB_ADMIN_EXPORT_VERSION });
+    assert!(
+        db_admin_export_version_ok_fun(&current).is_ok(),
+        "the current version should be readable"
+    );
+
+    // an older version is fine: the format only goes up.
+    let older = serde_json::json!({ "version": DB_ADMIN_EXPORT_VERSION - 1 });
+    assert!(
+        db_admin_export_version_ok_fun(&older).is_ok(),
+        "an older version should be readable"
+    );
+
+    // a newer version is not: this bin does not know its columns.
+    let newer = serde_json::json!({ "version": DB_ADMIN_EXPORT_VERSION + 1 });
+    let newer_result = db_admin_export_version_ok_fun(&newer);
+    assert!(newer_result.is_err(), "a newer version should be refused");
+
+    // a file with no version is not an export.
+    let none = serde_json::json!({ "tx_queue": [] });
+    assert!(
+        db_admin_export_version_ok_fun(&none).is_err(),
+        "a file with no version should be refused"
+    );
+}
+
+// ========================================
+// --- THE SHARED HISTORY PREDICATE -----
+// the one definition of "has this been sent", used by the feed, the list
+// and the prune.
+#[test]
+fn db_history_predicate_names_the_right_tables_fun() {
+    use crate::backend::logic::db::db_history_fun::{
+        DB_HISTORY_TABLE, db_history_account_not_sent_before_fun, db_history_not_sent_sql_fun,
+        db_history_sent_count_sql_fun,
+    };
+
+    let queue = db_history_not_sent_sql_fun(DB_HISTORY_TABLE::TxQueue);
+    assert!(queue.contains("tx_queue_accounts"));
+    assert!(queue.contains("tx_hash IS NOT NULL"));
+    assert!(queue.contains("tx_queue.queue_id"));
+
+    let swap = db_history_not_sent_sql_fun(DB_HISTORY_TABLE::SwapQueue);
+    assert!(swap.contains("swap_queue_accounts"));
+    assert!(swap.contains("swap_queue.swap_id"));
+
+    let count = db_history_sent_count_sql_fun(DB_HISTORY_TABLE::TxQueue, "q");
+    assert!(count.contains("tx_queue_accounts"));
+    assert!(count.contains("q.queue_id"));
+
+    let account = db_history_account_not_sent_before_fun(
+        DB_HISTORY_TABLE::TxQueue,
+        crate::backend::logic::db::db_history_fun::DB_HISTORY_ACCOUNT_MARKER,
+    );
+    assert!(account.contains("h.account_id = DB_HISTORY_ACCOUNT_MARKER"));
+}
+// ========================================
 // copyright 2026 by sleet.near
 // ========================================

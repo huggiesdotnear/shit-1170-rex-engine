@@ -78,6 +78,39 @@ impl SqliteListBuilder {
         self.sql.push_str(&format!("?{}", self.values.len()));
     }
 
+    // the placeholder the NEXT bind will use.
+    //
+    // --- WHY --- IT IS PRIVATE: the number is the builder's to give. a
+    // caller that wrote `?N` itself would be counting the builder's
+    // binds, and the count would be right only until the next clause
+    // took one. a caller that wants a bind in the middle of a clause
+    // uses `push_bind_at_marker_fun`.
+    fn next_placeholder_fun(&self) -> String {
+        format!("?{}", self.values.len() + 1)
+    }
+
+    // bind a value into a MARKER that is already in the sql.
+    //
+    // --- WHY --- THE MARKER IS REPLACED and not the sql built around it:
+    // a shared clause that has a bind in the middle of it cannot be
+    // written as one string, because the placeholder number belongs to
+    // the builder and not to the clause. so the clause carries a marker
+    // where the bind goes, and this replaces the marker with the
+    // placeholder the builder writes and binds the value beside it.
+    //
+    // --- WHY --- IT IS AN ERROR AND NOT A SILENT NO-OP: a marker that
+    // is not in the sql means the clause and the caller disagree about
+    // the shape, and a bind that goes nowhere would run a query with a
+    // value it never used.
+    pub fn push_bind_at_marker_fun(&mut self, marker: &str, value: SqliteBind) {
+        if !self.sql.contains(marker) {
+            panic!("the sql has no {marker} to bind into");
+        }
+        let placeholder = self.next_placeholder_fun();
+        self.sql = self.sql.replace(marker, &placeholder);
+        self.values.push(value);
+    }
+
     // bind a list of text values into an `IN (...)` and put the
     // placeholders in.
     //

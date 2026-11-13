@@ -20,6 +20,7 @@ pub mod db_admin_db_fun;
 pub mod db_admin_export_fun;
 pub mod db_admin_list_fun;
 pub mod db_admin_now_fun;
+pub mod db_admin_prelude_fun;
 pub mod db_admin_prune_fun;
 #[cfg(test)]
 pub mod db_admin_test;

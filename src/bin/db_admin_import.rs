@@ -15,51 +15,48 @@
 // --- WHY --- IT IS AN UPSERT and not an insert: an import into a vault
 // that already holds some of the rows brings the file's rows in and
 // leaves the rest alone.
-use shit_1170_rex_engine::backend::logic::db::bin::db_admin_args_fun::{
-    db_admin_args_fun, db_admin_flag_fun, db_admin_switch_fun,
-};
-use shit_1170_rex_engine::backend::logic::db::bin::db_admin_db_fun::{
-    db_admin_db_has_tables_fun, db_admin_db_open_fun, db_admin_db_path_fun,
-};
+//
+// --- WHY --- THE VERSION OF THE FILE IS CHECKED BEFORE ANYTHING ELSE:
+// the import writes the rows it is given, and a file from a newer
+// version may have columns this version does not know about. importing
+// it would drop them silently.
+use shit_1170_rex_engine::backend::logic::db::bin::db_admin_args_fun::db_admin_flag_fun;
+use shit_1170_rex_engine::backend::logic::db::bin::db_admin_args_fun::db_admin_switch_fun;
+use shit_1170_rex_engine::backend::logic::db::bin::db_admin_export_fun::db_admin_export_version_ok_fun;
 use shit_1170_rex_engine::backend::logic::db::bin::db_admin_export_fun::db_admin_import_fun;
+use shit_1170_rex_engine::backend::logic::db::bin::db_admin_prelude_fun::db_admin_prelude_fun;
+// ========================================
+// the usage text.
+//
+// --- WHY --- IT IS A CONSTANT and not a function: the prelude prints it
+// and the prelude has no other use for it, and a constant says plainly
+// that it is data.
+const HELP_TEXT: &str = r#"db-admin-import - put an export back into a vault
+
+usage:
+  db-admin-import --db <path> --from <file> [--confirm]
+
+  --db <path>    the db file to write into
+  --from <file>  the export to bring in
+  --confirm      actually write
+
+the api keys in the file are not imported. sign in again for a new key."#;
 // ========================================
 #[tokio::main]
 async fn main() {
-    let words: Vec<String> = std::env::args().skip(1).collect();
-    let args = db_admin_args_fun(&words);
-
-    if db_admin_switch_fun(&args, "help") {
-        print_help_fun();
-        return;
-    }
-
-    let known: Vec<&str> = vec!["db", "from", "confirm"];
-    let unknown: Vec<String> = args
-        .flags
-        .keys()
-        .filter(|name| !known.contains(&name.as_str()))
-        .cloned()
-        .collect();
-    let unknown_switches: Vec<String> = args
-        .switches
-        .iter()
-        .filter(|name| !known.contains(&name.as_str()))
-        .cloned()
-        .collect();
-    if !unknown.is_empty() || !unknown_switches.is_empty() {
-        eprintln!(
-            "unknown flag: --{}",
-            unknown
-                .first()
-                .cloned()
-                .unwrap_or_else(|| unknown_switches.first().cloned().unwrap_or_default())
-        );
-        eprintln!("run `db-admin-import --help` to see the flags");
-        std::process::exit(2);
-    }
+    // --- THE FLAGS AND THE DB -----------
+    // --- WHY --- THE PRELUDE DOES THE FLAGS AND THE DB: every bin opens
+    // the db the same way and refuses an unknown flag the same way, and
+    // a bin that keeps its own copy of that can fall behind the flags it
+    // takes.
+    let prelude =
+        db_admin_prelude_fun("db-admin-import", &["db", "from", "confirm"], HELP_TEXT).await;
+    let args = &prelude.args;
+    let db_path = &prelude.db_path;
+    let pool = &prelude.pool;
 
     // --- THE FILE ----------------------
-    let from = match db_admin_flag_fun(&args, "from") {
+    let from = match db_admin_flag_fun(args, "from") {
         Some(path) => path.to_string(),
         None => {
             eprintln!("--from <file> is needed: that is the export to bring in.");
@@ -81,25 +78,13 @@ async fn main() {
         }
     };
 
-    // --- THE DB ------------------------
-    let db_path = db_admin_db_path_fun(args.db_path.clone());
-    let pool = match db_admin_db_open_fun(&db_path).await {
-        Ok(pool) => pool,
-        Err(err) => {
-            eprintln!("could not open the db at {}: {err}", db_path.display());
-            std::process::exit(1);
-        }
-    };
-    match db_admin_db_has_tables_fun(&pool).await {
-        Ok(true) => {}
-        Ok(false) => {
-            eprintln!("the db at {} is not a shit-1170 vault.", db_path.display());
-            std::process::exit(1);
-        }
-        Err(err) => {
-            eprintln!("could not read the db at {}: {err}", db_path.display());
-            std::process::exit(1);
-        }
+    // --- THE VERSION -------------------
+    // --- WHY --- THE VERSION IS CHECKED BEFORE THE COUNTS ARE PRINTED:
+    // the counts are a plan, and a plan for a file this bin cannot read
+    // is a plan for the wrong thing.
+    if let Err(message) = db_admin_export_version_ok_fun(&export) {
+        eprintln!("{from}: {message}");
+        std::process::exit(1);
     }
 
     // --- WHAT IS IN THE FILE -----------
@@ -126,7 +111,7 @@ async fn main() {
     }
 
     // --- THE DRY RUN -------------------
-    if !db_admin_switch_fun(&args, "confirm") {
+    if !db_admin_switch_fun(args, "confirm") {
         println!();
         println!("this was a dry run. nothing was written.");
         println!("add --confirm to actually bring the rows in.");
@@ -134,7 +119,7 @@ async fn main() {
     }
 
     // --- THE IMPORT --------------------
-    match db_admin_import_fun(&pool, &export).await {
+    match db_admin_import_fun(pool, &export).await {
         Ok((queues, transactions, accounts, swaps, swap_accounts)) => {
             println!();
             println!(
@@ -147,22 +132,6 @@ async fn main() {
             std::process::exit(1);
         }
     }
-}
-
-// the usage text.
-fn print_help_fun() {
-    println!(
-        r#"db-admin-import - put an export back into a vault
-
-usage:
-  db-admin-import --db <path> --from <file> [--confirm]
-
-  --db <path>    the db file to write into
-  --from <file>  the export to bring in
-  --confirm      actually write
-
-the api keys in the file are not imported. sign in again for a new key."#
-    );
 }
 // ========================================
 // copyright 2026 by sleet.near

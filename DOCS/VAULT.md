@@ -236,6 +236,12 @@ HISTORY: it shows who did the transaction and it stays. so a queue that
 any account has sent does not match a prune at all. `--include-sent`
 says "take that history too", and it is the only way to do it.
 
+**`--never-sent` and `--include-sent` ask opposite questions, so a prune
+refuses both at once.** `--never-sent` says "only the rows nobody sent"
+and `--include-sent` says "the rows that were sent too". a prune cannot
+do both, and a bin that deletes rows does not pick one for you — it says
+so and stops.
+
 **the bins do not create a db.** a bin pointed at a path with no db
 there says so and stops. it does not make an empty db where the real
 one should have been, and it does not run the schema creates against a
@@ -245,6 +251,12 @@ vault it was asked to look at.
 `--with-api-keys` is given, and `db-admin-import` never brings them back
 in — a key that has been in a file has been in the clear, so the
 accounts come back and the user signs in again.
+
+**an import checks the version of the file.** the export carries a
+`version`, and the import reads it before it writes anything. a file
+from a NEWER build is refused, because it may hold columns this build
+does not know about and importing it would drop them quietly. a file
+with no version is refused too — it is not an export.
 
 ### THE PRUNE FILTERS
 
@@ -260,6 +272,8 @@ accounts come back and the user signs in again.
 --swaps               also take the queued swaps
 --confirm             actually delete
 ```
+
+`--never-sent` and `--include-sent` cannot be given together.
 
 the swaps are only part of the plan when `--swaps` or `--swap-ids` is
 given. a prune that names a queue id is about that queue, and taking

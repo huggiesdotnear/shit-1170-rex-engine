@@ -23,6 +23,18 @@
 use serde_json::{Value, json};
 use sqlx::{Row, SqlitePool};
 // ========================================
+// --- THE VERSION -----------------------
+// the version of the export format.
+//
+// --- WHY --- IT IS A NUMBER AND NOT A STRING: a number is compared, and
+// a number that goes up means the format changed. a string would have to
+// be compared as text, and "10" sorts before "9".
+//
+// --- WHY --- IT IS HERE AND NOT IN THE BIN: the export writes it and the
+// import reads it, and they are the same number. a version that each
+// side wrote for itself would be two versions that agree by accident.
+pub const DB_ADMIN_EXPORT_VERSION: i64 = 1;
+// ========================================
 // --- EXPORT ----------------------------
 // every row of every table, as a json object.
 //
@@ -34,7 +46,7 @@ pub async fn db_admin_export_fun(
     with_api_keys: bool,
 ) -> Result<Value, sqlx::Error> {
     let mut export = json!({
-        "version": 1,
+        "version": DB_ADMIN_EXPORT_VERSION,
         "exported_at": crate::backend::logic::db::bin::db_admin_now_fun::now_ms_fun(),
     });
 
@@ -385,6 +397,57 @@ pub async fn db_admin_import_fun(
     Ok((queues, transactions, accounts, swaps, swap_accounts))
 }
 
+// ========================================
+// --- CHECK THE VERSION -----------------
+// is this export a version this bin can read?
+//
+// --- WHY --- THE VERSION IS CHECKED AND NOT ASSUMED: the import is an
+// UPSERT that writes the rows it is given, and a file from a newer
+// version may have columns this version does not know about. importing
+// it would drop them silently, and the person doing it would not know
+// that the rows came back wrong.
+//
+// --- WHY --- A MISSING VERSION IS AN ERROR and not a default: a file
+// without a version was not made by this format, and a file that was
+// hand-edited may have had its version taken out. treating it as the
+// current version would guess.
+//
+// --- WHY --- A NEWER VERSION IS AN ERROR and an OLDER ONE IS NOT: the
+// format only ever goes up, so a newer file is from a future this bin
+// cannot understand. an older file is a file this bin grew out of, and
+// the rows it names are the rows this bin understands.
+//
+// --- WHY --- THE ERROR NAMES BOTH VERSIONS: a person who has a file
+// from a newer build needs to know which build, and "wrong version" is
+// not enough to go on.
+pub fn db_admin_export_version_ok_fun(export: &Value) -> Result<(), String> {
+    let version = match export.get("version") {
+        Some(value) => value,
+        None => {
+            return Err(String::from(
+                "the file has no version in it, so it is not a vault export.",
+            ));
+        }
+    };
+
+    let version = match version.as_i64() {
+        Some(version) => version,
+        None => {
+            return Err(format!(
+                "the version in the file is '{version}', and it should be a number."
+            ));
+        }
+    };
+
+    if version > DB_ADMIN_EXPORT_VERSION {
+        return Err(format!(
+            "the file is version {version} and this bin reads up to version {DB_ADMIN_EXPORT_VERSION}. \
+             it was made by a newer build."
+        ));
+    }
+
+    Ok(())
+}
 // ========================================
 // --- JSON HELPERS ----------------------
 // a string field of a json object.

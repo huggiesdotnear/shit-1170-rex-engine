@@ -27,73 +27,91 @@
 // let `--confirm no` be read as "yes", and there is nothing to be
 // careful with here.
 use shit_1170_rex_engine::backend::logic::db::bin::db_admin_args_fun::{
-    DB_ADMIN_ARGS, db_admin_args_fun, db_admin_flag_fun, db_admin_id_list_fun, db_admin_switch_fun,
+    DB_ADMIN_ARGS, db_admin_flag_fun, db_admin_id_list_fun, db_admin_switch_fun,
 };
-use shit_1170_rex_engine::backend::logic::db::bin::db_admin_db_fun::{
-    db_admin_db_has_tables_fun, db_admin_db_open_fun, db_admin_db_path_fun,
-};
+use shit_1170_rex_engine::backend::logic::db::bin::db_admin_prelude_fun::db_admin_prelude_fun;
 use shit_1170_rex_engine::backend::logic::db::bin::db_admin_prune_fun::{
     DB_ADMIN_PRUNE_FILTERS, db_admin_prune_count_children_fun,
     db_admin_prune_count_swap_accounts_fun, db_admin_prune_delete_fun,
-    db_admin_prune_queue_plan_fun, db_admin_prune_swap_plan_fun,
+    db_admin_prune_filters_are_opposite_fun, db_admin_prune_queue_plan_fun,
+    db_admin_prune_swap_plan_fun,
 };
+// ========================================
+// the usage text.
+//
+// --- WHY --- IT IS A CONSTANT and not a function: the prelude prints it
+// and the prelude has no other use for it, and a constant says plainly
+// that it is data.
+const HELP_TEXT: &str = r#"db-admin-prune - take old queues and swaps off a vault
+
+usage:
+  db-admin-prune --db <path> [filters] [--confirm]
+
+the filters:
+  --older-than <days>   only the rows queued more than <days> ago
+  --before <epoch-ms>   only the rows queued before that moment
+  --after <epoch-ms>    only the rows queued after that moment
+  --never-sent          only the rows no account ever sent
+  --queue-ids <a,b,c>   only these queue ids
+  --swap-ids <a,b,c>    only these swap ids
+  --account <account>   only the rows this account is on
+  --include-sent        also take the rows that were sent
+  --swaps               also take the queued swaps
+  --confirm             actually delete
+  --db <path>           the db file to work on
+
+--never-sent and --include-sent ask opposite questions. give one of them.
+
+without --confirm this prints the plan and deletes nothing."#;
 // ========================================
 #[tokio::main]
 async fn main() {
-    let words: Vec<String> = std::env::args().skip(1).collect();
-    let args = db_admin_args_fun(&words);
-
-    if db_admin_switch_fun(&args, "help") {
-        print_help_fun();
-        return;
-    }
-
-    // --- THE FLAGS WE KNOW --------------
-    let known: Vec<&str> = vec![
-        "db",
-        "older-than",
-        "before",
-        "after",
-        "never-sent",
-        "queue-ids",
-        "swap-ids",
-        "account",
-        "include-sent",
-        "swaps",
-        "confirm",
-    ];
-    let unknown: Vec<String> = args
-        .flags
-        .keys()
-        .filter(|name| !known.contains(&name.as_str()))
-        .cloned()
-        .collect();
-    let unknown_switches: Vec<String> = args
-        .switches
-        .iter()
-        .filter(|name| !known.contains(&name.as_str()))
-        .cloned()
-        .collect();
-    if !unknown.is_empty() || !unknown_switches.is_empty() {
-        eprintln!(
-            "unknown flag: --{}",
-            unknown
-                .first()
-                .cloned()
-                .unwrap_or_else(|| unknown_switches.first().cloned().unwrap_or_default())
-        );
-        eprintln!("run `db-admin-prune --help` to see the flags");
-        std::process::exit(2);
-    }
+    // --- THE FLAGS AND THE DB -----------
+    // --- WHY --- THE PRELUDE DOES THE FLAGS AND THE DB: every bin opens
+    // the db the same way and refuses an unknown flag the same way, and
+    // a bin that keeps its own copy of that can fall behind the flags it
+    // takes. THIS BIN MATTERS MOST: a typo in a flag that DELETES ROWS
+    // runs a prune with no age filter, and that prune takes everything.
+    let prelude = db_admin_prelude_fun(
+        "db-admin-prune",
+        &[
+            "db",
+            "older-than",
+            "before",
+            "after",
+            "never-sent",
+            "queue-ids",
+            "swap-ids",
+            "account",
+            "include-sent",
+            "swaps",
+            "confirm",
+        ],
+        HELP_TEXT,
+    )
+    .await;
+    let args = &prelude.args;
+    let db_path = &prelude.db_path;
+    let pool = &prelude.pool;
 
     // --- THE FILTERS --------------------
-    let filters = match db_admin_filters_fun(&args) {
+    let filters = match db_admin_filters_fun(args) {
         Ok(filters) => filters,
         Err(message) => {
             eprintln!("{message}");
             std::process::exit(2);
         }
     };
+
+    // --- THE OPPOSITE FLAGS --------------
+    // --- WHY --- THE RULE IS ASKED AND NOT WRITTEN HERE: the rule is
+    // about the filters and not about the command line, so it lives with
+    // the filters and the bin asks it.
+    if db_admin_prune_filters_are_opposite_fun(&filters) {
+        eprintln!("--never-sent and --include-sent ask opposite questions.");
+        eprintln!("give one of them, not both.");
+        std::process::exit(2);
+    }
 
     if filters.older_than_days.is_none()
         && filters.before_ms.is_none()
@@ -110,36 +128,15 @@ async fn main() {
         std::process::exit(2);
     }
 
-    // --- THE DB -------------------------
-    let db_path = db_admin_db_path_fun(args.db_path.clone());
-    let pool = match db_admin_db_open_fun(&db_path).await {
-        Ok(pool) => pool,
-        Err(err) => {
-            eprintln!("could not open the db at {}: {err}", db_path.display());
-            std::process::exit(1);
-        }
-    };
-    match db_admin_db_has_tables_fun(&pool).await {
-        Ok(true) => {}
-        Ok(false) => {
-            eprintln!("the db at {} is not a shit-1170 vault.", db_path.display());
-            std::process::exit(1);
-        }
-        Err(err) => {
-            eprintln!("could not read the db at {}: {err}", db_path.display());
-            std::process::exit(1);
-        }
-    }
-
     // --- THE PLAN -----------------------
-    let queue_ids = match db_admin_prune_queue_plan_fun(&pool, &filters).await {
+    let queue_ids = match db_admin_prune_queue_plan_fun(pool, &filters).await {
         Ok(ids) => ids,
         Err(err) => {
             eprintln!("could not read the queues: {err}");
             std::process::exit(1);
         }
     };
-    let swap_ids = match db_admin_prune_swap_plan_fun(&pool, &filters).await {
+    let swap_ids = match db_admin_prune_swap_plan_fun(pool, &filters).await {
         Ok(ids) => ids,
         Err(err) => {
             eprintln!("could not read the swaps: {err}");
@@ -148,14 +145,14 @@ async fn main() {
     };
 
     let (transaction_rows, account_rows) =
-        match db_admin_prune_count_children_fun(&pool, &queue_ids).await {
+        match db_admin_prune_count_children_fun(pool, &queue_ids).await {
             Ok(counts) => counts,
             Err(err) => {
                 eprintln!("could not count the queue rows: {err}");
                 std::process::exit(1);
             }
         };
-    let swap_account_rows = match db_admin_prune_count_swap_accounts_fun(&pool, &swap_ids).await {
+    let swap_account_rows = match db_admin_prune_count_swap_accounts_fun(pool, &swap_ids).await {
         Ok(count) => count,
         Err(err) => {
             eprintln!("could not count the swap rows: {err}");
@@ -188,7 +185,7 @@ async fn main() {
     }
 
     // --- THE DRY RUN -------------------
-    if !db_admin_switch_fun(&args, "confirm") {
+    if !db_admin_switch_fun(args, "confirm") {
         println!();
         println!("this was a dry run. nothing was deleted.");
         println!("add --confirm to actually delete these rows.");
@@ -204,7 +201,7 @@ async fn main() {
             account_rows,
             swap_account_rows,
         };
-    match db_admin_prune_delete_fun(&pool, &plan).await {
+    match db_admin_prune_delete_fun(pool, &plan).await {
         Ok((queues, swaps)) => {
             println!();
             println!("deleted {} queues and {} swaps.", queues, swaps);
@@ -253,31 +250,6 @@ fn db_admin_filters_fun(args: &DB_ADMIN_ARGS) -> Result<DB_ADMIN_PRUNE_FILTERS, 
     }
 
     Ok(filters)
-}
-
-// the usage text.
-fn print_help_fun() {
-    println!(
-        r#"db-admin-prune - take old queues and swaps off a vault
-
-usage:
-  db-admin-prune --db <path> [filters] [--confirm]
-
-the filters:
-  --older-than <days>   only the rows queued more than <days> ago
-  --before <epoch-ms>   only the rows queued before that moment
-  --after <epoch-ms>    only the rows queued after that moment
-  --never-sent          only the rows no account ever sent
-  --queue-ids <a,b,c>   only these queue ids
-  --swap-ids <a,b,c>    only these swap ids
-  --account <account>   only the rows this account is on
-  --include-sent        also take the rows that were sent
-  --swaps               also take the queued swaps
-  --confirm             actually delete
-  --db <path>           the db file to work on
-
-without --confirm this prints the plan and deletes nothing."#
-    );
 }
 // ========================================
 // copyright 2026 by sleet.near

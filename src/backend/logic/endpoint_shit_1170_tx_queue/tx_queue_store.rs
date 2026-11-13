@@ -293,16 +293,26 @@ pub async fn tx_queue_list_fun(
         } else {
             0
         }));
+        builder.push_text_fun(" = 0 OR ");
+        // --- WHY --- THE HISTORY PREDICATE IS THE SHARED ONE: "a row
+        // that carries a hash is history" is the rule the whole app turns
+        // on — the feed hides it, the list counts it, and the prune
+        // refuses to take it. one definition of it, or three answers to
+        // the same question.
         builder.push_text_fun(
-            " = 0
-           OR NOT EXISTS (SELECT 1 FROM tx_queue_accounts s
-                           WHERE s.queue_id = tx_queue.queue_id
-                             AND s.account_id = ",
+            &crate::backend::logic::db::db_history_fun::db_history_account_not_sent_before_fun(
+                crate::backend::logic::db::db_history_fun::DB_HISTORY_TABLE::TxQueue,
+                crate::backend::logic::db::db_history_fun::DB_HISTORY_ACCOUNT_MARKER,
+            ),
         );
-        builder.push_bind_fun(SqliteBind::Text(
-            hide_sent_account.clone().unwrap_or_default(),
-        ));
-        builder.push_text_fun(" AND s.tx_hash IS NOT NULL) )");
+        builder.push_bind_at_marker_fun(
+            crate::backend::logic::db::db_history_fun::DB_HISTORY_ACCOUNT_MARKER,
+            SqliteBind::Text(hide_sent_account.clone().unwrap_or_default()),
+        );
+        builder.push_text_fun(
+            &crate::backend::logic::db::db_history_fun::db_history_account_not_sent_after_fun(),
+        );
+        builder.push_text_fun(" )");
     }
 
     // --- THE CONTRACT FILTER -------------
@@ -392,16 +402,23 @@ pub async fn tx_queue_list_fun(
         } else {
             0
         }));
+        total_builder.push_text_fun(" = 0 OR ");
+        // --- WHY --- THE HISTORY PREDICATE IS THE SHARED ONE: see the
+        // note on the list query above.
         total_builder.push_text_fun(
-            " = 0
-           OR NOT EXISTS (SELECT 1 FROM tx_queue_accounts s
-                           WHERE s.queue_id = tx_queue.queue_id
-                             AND s.account_id = ",
+            &crate::backend::logic::db::db_history_fun::db_history_account_not_sent_before_fun(
+                crate::backend::logic::db::db_history_fun::DB_HISTORY_TABLE::TxQueue,
+                crate::backend::logic::db::db_history_fun::DB_HISTORY_ACCOUNT_MARKER,
+            ),
         );
-        total_builder.push_bind_fun(SqliteBind::Text(
-            hide_sent_account.clone().unwrap_or_default(),
-        ));
-        total_builder.push_text_fun(" AND s.tx_hash IS NOT NULL) )");
+        total_builder.push_bind_at_marker_fun(
+            crate::backend::logic::db::db_history_fun::DB_HISTORY_ACCOUNT_MARKER,
+            SqliteBind::Text(hide_sent_account.clone().unwrap_or_default()),
+        );
+        total_builder.push_text_fun(
+            &crate::backend::logic::db::db_history_fun::db_history_account_not_sent_after_fun(),
+        );
+        total_builder.push_text_fun(" )");
     }
     if !query.contract_ids.is_empty() {
         total_builder.push_text_fun(

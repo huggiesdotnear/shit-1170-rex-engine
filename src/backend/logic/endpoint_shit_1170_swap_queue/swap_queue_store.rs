@@ -302,16 +302,26 @@ pub async fn swap_queue_list_fun(
         } else {
             0
         }));
+        builder.push_text_fun(" = 0 OR ");
+        // --- WHY --- THE HISTORY PREDICATE IS THE SHARED ONE: "a row
+        // that carries a hash is history" is the rule the whole app turns
+        // on — the feed hides it, the list counts it, and the prune
+        // refuses to take it. one definition of it, or three answers to
+        // the same question.
         builder.push_text_fun(
-            " = 0
-           OR NOT EXISTS (SELECT 1 FROM swap_queue_accounts s
-                           WHERE s.swap_id = swap_queue.swap_id
-                             AND s.account_id = ",
+            &crate::backend::logic::db::db_history_fun::db_history_account_not_sent_before_fun(
+                crate::backend::logic::db::db_history_fun::DB_HISTORY_TABLE::SwapQueue,
+                crate::backend::logic::db::db_history_fun::DB_HISTORY_ACCOUNT_MARKER,
+            ),
         );
-        builder.push_bind_fun(SqliteBind::Text(
-            hide_sent_account.clone().unwrap_or_default(),
-        ));
-        builder.push_text_fun(" AND s.tx_hash IS NOT NULL) )");
+        builder.push_bind_at_marker_fun(
+            crate::backend::logic::db::db_history_fun::DB_HISTORY_ACCOUNT_MARKER,
+            SqliteBind::Text(hide_sent_account.clone().unwrap_or_default()),
+        );
+        builder.push_text_fun(
+            &crate::backend::logic::db::db_history_fun::db_history_account_not_sent_after_fun(),
+        );
+        builder.push_text_fun(" )");
     }
 
     // --- THE TOKEN FILTERS ---------------
@@ -411,16 +421,23 @@ pub async fn swap_queue_list_fun(
         } else {
             0
         }));
+        total_builder.push_text_fun(" = 0 OR ");
+        // --- WHY --- THE HISTORY PREDICATE IS THE SHARED ONE: see the
+        // note on the list query above.
         total_builder.push_text_fun(
-            " = 0
-           OR NOT EXISTS (SELECT 1 FROM swap_queue_accounts s
-                           WHERE s.swap_id = swap_queue.swap_id
-                             AND s.account_id = ",
+            &crate::backend::logic::db::db_history_fun::db_history_account_not_sent_before_fun(
+                crate::backend::logic::db::db_history_fun::DB_HISTORY_TABLE::SwapQueue,
+                crate::backend::logic::db::db_history_fun::DB_HISTORY_ACCOUNT_MARKER,
+            ),
         );
-        total_builder.push_bind_fun(SqliteBind::Text(
-            hide_sent_account.clone().unwrap_or_default(),
-        ));
-        total_builder.push_text_fun(" AND s.tx_hash IS NOT NULL) )");
+        total_builder.push_bind_at_marker_fun(
+            crate::backend::logic::db::db_history_fun::DB_HISTORY_ACCOUNT_MARKER,
+            SqliteBind::Text(hide_sent_account.clone().unwrap_or_default()),
+        );
+        total_builder.push_text_fun(
+            &crate::backend::logic::db::db_history_fun::db_history_account_not_sent_after_fun(),
+        );
+        total_builder.push_text_fun(" )");
     }
     if let Some(token_in) = query.token_in.as_deref() {
         total_builder.push_text_fun(" AND token_in = ");

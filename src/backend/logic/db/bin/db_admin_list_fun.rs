@@ -70,11 +70,19 @@ pub async fn db_admin_list_queues_fun(
                   WHERE t.queue_id = q.queue_id) AS transactions,
                 (SELECT COUNT(*) FROM tx_queue_accounts a
                   WHERE a.queue_id = q.queue_id) AS accounts,
-                (SELECT COUNT(*) FROM tx_queue_accounts a
-                  WHERE a.queue_id = q.queue_id
-                    AND a.tx_hash IS NOT NULL) AS sent
-           FROM tx_queue q",
+                ",
     );
+    // --- WHY --- THE SENT COUNT IS THE SHARED PREDICATE: "a row that
+    // carries a hash is history" is the rule the whole app turns on — the
+    // feed hides it, the prune refuses to take it, and the list counts
+    // it. one definition of it, or three answers to the same question.
+    query.push_str(
+        &crate::backend::logic::db::db_history_fun::db_history_sent_count_sql_fun(
+            crate::backend::logic::db::db_history_fun::DB_HISTORY_TABLE::TxQueue,
+            "q",
+        ),
+    );
+    query.push_str(" AS sent\n           FROM tx_queue q");
     // --- WHY --- THE ORDER COMES BEFORE THE LIMIT: that is the order
     // sqlite wants them in. a limit before the order is a syntax error.
     query.push_str(" ORDER BY q.created_at DESC, q.queue_id DESC");
@@ -110,11 +118,17 @@ pub async fn db_admin_list_swaps_fun(
         "SELECT s.swap_id, s.what, s.created_at,
                 (SELECT COUNT(*) FROM swap_queue_accounts a
                   WHERE a.swap_id = s.swap_id) AS accounts,
-                (SELECT COUNT(*) FROM swap_queue_accounts a
-                  WHERE a.swap_id = s.swap_id
-                    AND a.tx_hash IS NOT NULL) AS sent
-           FROM swap_queue s",
+                ",
     );
+    // --- WHY --- THE SENT COUNT IS THE SHARED PREDICATE: see the note
+    // on the queue list above.
+    query.push_str(
+        &crate::backend::logic::db::db_history_fun::db_history_sent_count_sql_fun(
+            crate::backend::logic::db::db_history_fun::DB_HISTORY_TABLE::SwapQueue,
+            "s",
+        ),
+    );
+    query.push_str(" AS sent\n           FROM swap_queue s");
     // --- WHY --- THE ORDER COMES BEFORE THE LIMIT: that is the order
     // sqlite wants them in. a limit before the order is a syntax error.
     query.push_str(" ORDER BY s.created_at DESC, s.swap_id DESC");

@@ -57,6 +57,24 @@ pub struct DB_ADMIN_PRUNE_FILTERS {
     pub include_swaps: bool,
 }
 // ========================================
+// --- THE OPPOSITE FLAGS ----------------
+// do these two filters ask opposite questions?
+//
+// --- WHY --- THE RULE IS HERE and not in the bin: the question is about
+// the FILTERS and not about the command line, and the bin asks it before
+// it plans anything. a rule in the bin would be a rule the tests could
+// not reach.
+//
+// --- WHY --- THE PAIR IS REFUSED and not resolved: `--never-sent` says
+// "only the rows nobody sent" and `--include-sent` says "the rows that
+// were sent too". a prune cannot do both — one of them has to lose, and a
+// tool that deletes rows should not pick which one silently. the person
+// who typed both knows what they want.
+pub fn db_admin_prune_filters_are_opposite_fun(filters: &DB_ADMIN_PRUNE_FILTERS) -> bool {
+    filters.never_sent && filters.include_sent
+}
+
+// ========================================
 // --- PLAN ------------------------------
 // what would be deleted.
 #[derive(Debug, Clone, Default)]
@@ -140,22 +158,25 @@ fn db_admin_prune_queue_where_fun(
             binds.push(SqlxBind::Text(id.clone()));
         }
     }
-    if filters.never_sent {
+    // --- WHY --- THE HISTORY RULE IS THE SHARED ONE and not a copy of
+    // it: "a row that carries a hash is history" is the rule the whole app
+    // turns on, and the feed and the list ask it with the same predicate.
+    // a second copy of it here is a second answer to the same question.
+    //
+    // --- WHY --- `never_sent` AND THE DEFAULT ARE THE SAME PREDICATE:
+    // `--never-sent` asks for the rows nobody sent, and NOT sending
+    // history is the default. so they are the same clause, and the
+    // default is written once and the flag adds nothing to it.
+    //
+    // --- WHY --- THE FLAG CANNOT BE COMBINED WITH `--include-sent`: they
+    // ask opposite questions — "only the ones nobody sent" and "the ones
+    // that were sent too" — and a prune that took both at once would have
+    // to answer both. the bin refuses the pair instead of picking one.
+    if filters.never_sent || !filters.include_sent {
         clauses.push(
-            "NOT EXISTS (
-               SELECT 1 FROM tx_queue_accounts a
-                WHERE a.queue_id = tx_queue.queue_id
-                  AND a.tx_hash IS NOT NULL)"
-                .to_string(),
-        );
-    }
-    if !filters.include_sent {
-        clauses.push(
-            "NOT EXISTS (
-               SELECT 1 FROM tx_queue_accounts a
-                WHERE a.queue_id = tx_queue.queue_id
-                  AND a.tx_hash IS NOT NULL)"
-                .to_string(),
+            crate::backend::logic::db::db_history_fun::db_history_not_sent_sql_fun(
+                crate::backend::logic::db::db_history_fun::DB_HISTORY_TABLE::TxQueue,
+            ),
         );
     }
     if let Some(account_id) = &filters.account_id {
@@ -216,11 +237,9 @@ fn db_admin_prune_swap_where_fun(
     }
     if filters.never_sent || !filters.include_sent {
         clauses.push(
-            "NOT EXISTS (
-               SELECT 1 FROM swap_queue_accounts a
-                WHERE a.swap_id = swap_queue.swap_id
-                  AND a.tx_hash IS NOT NULL)"
-                .to_string(),
+            crate::backend::logic::db::db_history_fun::db_history_not_sent_sql_fun(
+                crate::backend::logic::db::db_history_fun::DB_HISTORY_TABLE::SwapQueue,
+            ),
         );
     }
     if let Some(account_id) = &filters.account_id {

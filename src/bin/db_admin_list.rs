@@ -11,53 +11,50 @@
 // --- WHY --- THE LIMITS ARE PER TABLE and not one number for the whole
 // list: a vault with a thousand queues and three swaps is interesting
 // for different reasons, and one limit for both would hide one of them.
-use shit_1170_rex_engine::backend::logic::db::bin::db_admin_args_fun::{
-    db_admin_args_fun, db_admin_flag_fun, db_admin_switch_fun,
-};
-use shit_1170_rex_engine::backend::logic::db::bin::db_admin_db_fun::{
-    db_admin_db_has_tables_fun, db_admin_db_open_fun, db_admin_db_path_fun,
-};
+use shit_1170_rex_engine::backend::logic::db::bin::db_admin_args_fun::db_admin_flag_fun;
+use shit_1170_rex_engine::backend::logic::db::bin::db_admin_args_fun::db_admin_switch_fun;
 use shit_1170_rex_engine::backend::logic::db::bin::db_admin_list_fun::{
     db_admin_list_counts_fun, db_admin_list_queues_fun, db_admin_list_swaps_fun, db_admin_when_fun,
 };
+use shit_1170_rex_engine::backend::logic::db::bin::db_admin_prelude_fun::db_admin_prelude_fun;
+// ========================================
+// the usage text.
+//
+// --- WHY --- IT IS A CONSTANT and not a function: the prelude prints it
+// and the prelude has no other use for it, and a constant says plainly
+// that it is data.
+const HELP_TEXT: &str = r#"db-admin-list - show what is in a vault
+
+usage:
+  db-admin-list --db <path> [--limit <n>] [--queues] [--swaps]
+
+  --db <path>    the db file to look at
+  --limit <n>    how many of each to show (default 50)
+  --queues       only the queues
+  --swaps        only the swaps
+
+this one only reads."#;
 // ========================================
 #[tokio::main]
 async fn main() {
-    let words: Vec<String> = std::env::args().skip(1).collect();
-    let args = db_admin_args_fun(&words);
-
-    if db_admin_switch_fun(&args, "help") {
-        print_help_fun();
-        return;
-    }
-
-    let known: Vec<&str> = vec!["db", "limit", "swaps", "queues"];
-    let unknown: Vec<String> = args
-        .flags
-        .keys()
-        .filter(|name| !known.contains(&name.as_str()))
-        .cloned()
-        .collect();
-    let unknown_switches: Vec<String> = args
-        .switches
-        .iter()
-        .filter(|name| !known.contains(&name.as_str()))
-        .cloned()
-        .collect();
-    if !unknown.is_empty() || !unknown_switches.is_empty() {
-        eprintln!(
-            "unknown flag: --{}",
-            unknown
-                .first()
-                .cloned()
-                .unwrap_or_else(|| unknown_switches.first().cloned().unwrap_or_default())
-        );
-        eprintln!("run `db-admin-list --help` to see the flags");
-        std::process::exit(2);
-    }
+    // --- THE FLAGS AND THE DB -----------
+    // --- WHY --- THE PRELUDE DOES THE FLAGS AND THE DB: every bin opens
+    // the db the same way and refuses an unknown flag the same way, and
+    // a bin that keeps its own copy of that can fall behind the flags it
+    // takes. a typo in a flag that DELETES ROWS runs a prune with no age
+    // filter, so the check is not a style thing.
+    let prelude = db_admin_prelude_fun(
+        "db-admin-list",
+        &["db", "limit", "swaps", "queues"],
+        HELP_TEXT,
+    )
+    .await;
+    let args = &prelude.args;
+    let db_path = &prelude.db_path;
+    let pool = &prelude.pool;
 
     // --- THE LIMIT ---------------------
-    let limit = match db_admin_flag_fun(&args, "limit") {
+    let limit = match db_admin_flag_fun(args, "limit") {
         Some(value) => match value.parse::<i64>() {
             Ok(limit) => Some(limit),
             Err(_) => {
@@ -68,30 +65,9 @@ async fn main() {
         None => Some(50),
     };
 
-    // --- THE DB ------------------------
-    let db_path = db_admin_db_path_fun(args.db_path.clone());
-    let pool = match db_admin_db_open_fun(&db_path).await {
-        Ok(pool) => pool,
-        Err(err) => {
-            eprintln!("could not open the db at {}: {err}", db_path.display());
-            std::process::exit(1);
-        }
-    };
-    match db_admin_db_has_tables_fun(&pool).await {
-        Ok(true) => {}
-        Ok(false) => {
-            eprintln!("the db at {} is not a shit-1170 vault.", db_path.display());
-            std::process::exit(1);
-        }
-        Err(err) => {
-            eprintln!("could not read the db at {}: {err}", db_path.display());
-            std::process::exit(1);
-        }
-    }
-
     // --- THE COUNTS --------------------
     println!("db: {}", db_path.display());
-    let counts = match db_admin_list_counts_fun(&pool).await {
+    let counts = match db_admin_list_counts_fun(pool).await {
         Ok(counts) => counts,
         Err(err) => {
             eprintln!("could not count the rows: {err}");
@@ -103,11 +79,11 @@ async fn main() {
     }
 
     // --- THE QUEUES --------------------
-    let only_swaps = db_admin_switch_fun(&args, "swaps") && !db_admin_switch_fun(&args, "queues");
-    let only_queues = db_admin_switch_fun(&args, "queues") && !db_admin_switch_fun(&args, "swaps");
+    let only_swaps = db_admin_switch_fun(args, "swaps") && !db_admin_switch_fun(args, "queues");
+    let only_queues = db_admin_switch_fun(args, "queues") && !db_admin_switch_fun(args, "swaps");
 
     if !only_swaps {
-        let queues = match db_admin_list_queues_fun(&pool, limit).await {
+        let queues = match db_admin_list_queues_fun(pool, limit).await {
             Ok(queues) => queues,
             Err(err) => {
                 eprintln!("could not read the queues: {err}");
@@ -131,7 +107,7 @@ async fn main() {
 
     // --- THE SWAPS ---------------------
     if !only_queues {
-        let swaps = match db_admin_list_swaps_fun(&pool, limit).await {
+        let swaps = match db_admin_list_swaps_fun(pool, limit).await {
             Ok(swaps) => swaps,
             Err(err) => {
                 eprintln!("could not read the swaps: {err}");
@@ -151,23 +127,6 @@ async fn main() {
             );
         }
     }
-}
-
-// the usage text.
-fn print_help_fun() {
-    println!(
-        r#"db-admin-list - show what is in a vault
-
-usage:
-  db-admin-list --db <path> [--limit <n>] [--queues] [--swaps]
-
-  --db <path>    the db file to look at
-  --limit <n>    how many of each to show (default 50)
-  --queues       only the queues
-  --swaps        only the swaps
-
-this one only reads."#
-    );
 }
 // ========================================
 // copyright 2026 by sleet.near
