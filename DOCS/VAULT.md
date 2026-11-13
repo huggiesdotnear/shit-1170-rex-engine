@@ -1,5 +1,8 @@
 # VAULT
 
+ℹ️ this file covers info about our app's prodcution db stored in `${HOME}/.shit-1170-rex-engine`
+ℹ️ we refer to `${HOME}/.shit-1170-rex-engine` as the VAULT, and the skills also use this vault location as well. the way they use this VAULT location are covered in the skills repo
+
 the backend db storage location will be hardcoded to this location for simplicity.
 
 LOCATION: `${HOME}/.shit-1170-rex-engine/shit-1170-rex-engine.db`

@@ -1,6 +1,6 @@
 # DB
 
-we refer to our DB as the VAULT, see more about it in [DOCS/VAULT.md](../VAULT.md)
+we refer to our DB location as the VAULT, see more about it in [DOCS/VAULT.md](../VAULT.md)
 
 - [`tables.csv`](./tables.csv) — every table, every column, and what each
   column is for
