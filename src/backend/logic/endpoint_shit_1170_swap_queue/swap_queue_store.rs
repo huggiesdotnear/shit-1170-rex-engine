@@ -128,6 +128,12 @@ pub struct SWAP_QUEUE_CURSOR_POINT {
 //
 // --- WHY --- `amount_out` and `dex_id` are OPTIONALS: the agent may
 // queue a swap without a quote, and the quote is worked out live anyway.
+//
+// --- WHY --- there are ELEVEN arguments and not a struct: every one of
+// them is a COLUMN of the row, and a struct would only move the columns
+// into a struct and give the caller another thing to fill in. the
+// columns are the shape.
+#[allow(clippy::too_many_arguments)]
 pub async fn swap_queue_insert_fun(
     pool: &SqlitePool,
     swap_id: &str,
