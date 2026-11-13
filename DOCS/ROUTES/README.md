@@ -5,6 +5,23 @@ one file per route that needs more than a bullet point.
 the parent [`ROUTES.md`](../ROUTES.md) is the index — every route is
 listed there, and a route that needs its own detail gets a file here.
 
+## what is where
+
+a route is described by two things:
+
+- `shit-1170-tx-queue.md` | one route that needs more than a bullet point
+- [`routes.csv`](./routes.csv) | EVERY route at once — the method, the
+  path, what it does, its auth, its success and its errors
+
+the split is by granularity. the md file is the route. the csv is every
+route at once, so a question like "which routes need an api key?" has
+one answer, in one place, and no table is ever written into a markdown
+file.
+
+## THE FILES
+
+- [`routes.csv`](./routes.csv) — every route: its method, its path, its
+  auth, its success and its errors
 - [`trezu-treasuries.md`](./trezu-treasuries.md) — the treasuries
   (sputnik daos) an account belongs to
 - [`shit-1170-api-keys.md`](./shit-1170-api-keys.md) — turn signed
