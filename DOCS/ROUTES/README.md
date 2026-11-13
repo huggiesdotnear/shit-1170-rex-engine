@@ -42,6 +42,13 @@ file.
   the hashes of the transactions that went out
 - [`shit-1170-tx-queue-stats.md`](./shit-1170-tx-queue-stats.md) — how
   many queued txs per contract and per method
+- [`shit-1170-swap-queue.md`](./shit-1170-swap-queue.md) — queue a swap,
+  and the filterable list of them
+- [`shit-1170-swap-queue-accounts.md`](./shit-1170-swap-queue-accounts.md) —
+  add or remove YOUR OWN account on a queued swap
+- [`shit-1170-swap-queue-sent.md`](./shit-1170-swap-queue-sent.md) —
+  record that the swap went out — the hash, the outcome and the amount
+  that came out
 
 =====================
 <br/>
