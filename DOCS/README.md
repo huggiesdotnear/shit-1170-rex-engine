@@ -12,6 +12,8 @@
 - [`FILES.md`](./FILES.md) — repo file layout
 - [`VAULT.md`](./VAULT.md) — the db: its tables, where it lives, and the
   bins that do db work on it
+- [`DB/README.md`](./DB/README.md) — the db's field lists: the tables and
+  the indexes
 - [`PAGES/README.md`](./PAGES/README.md) — pages and ui layout, one file
   per page under `PAGES/`
 - [`../DOCKER/README.md`](../DOCKER/README.md) — docker build / compose
